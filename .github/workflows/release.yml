@@ -44,11 +44,15 @@ jobs:
         run: pyinstaller kater.spec
 
       - name: AppImage bauen
-        run: bash build-appimage.sh "${{ env.VERSION }}"
+        run: |
+          bash build-appimage.sh "${{ env.VERSION }}"
+          cp "Kater-${{ env.VERSION }}-x86_64.AppImage" "Kater-x86_64.AppImage"
 
       - name: Release erstellen und AppImage hochladen
         uses: softprops/action-gh-release@v2
         with:
           name: "Kater v${{ env.VERSION }}"
-          files: "Kater-${{ env.VERSION }}-x86_64.AppImage"
+          files: |
+            Kater-${{ env.VERSION }}-x86_64.AppImage
+            Kater-x86_64.AppImage
           generate_release_notes: true
