@@ -1,0 +1,9 @@
+# Adressbuch - Abhängigkeiten
+
+# Pflicht
+qrcode>=8.0        # QR-Code-Generierung
+Pillow>=9.0        # Bildanzeige in tkinter (ImageTk)
+
+# Optionale Abhängigkeiten für zukünftige Features:
+# pygobject>=3.44    # GTK4-Migration
+# requests           # Thunderbird CardDAV-Schnittstelle

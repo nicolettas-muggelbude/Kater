@@ -1,0 +1,281 @@
+"""Hauptfenster der Adressbuch-App (tkinter)."""
+
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+from pathlib import Path
+from typing import Optional
+
+from ..models.contact import Contact
+from ..storage.database import Database
+from ..storage.vcard import VCardParser, VCardExporter
+from .contact_form import ContactForm
+from .qr_dialog import QRDialog
+
+
+class AdressbuchApp(tk.Tk):
+    """Hauptfenster."""
+
+    def __init__(self, db_path: str | Path):
+        super().__init__()
+        self.title("Adressbuch")
+        self.geometry("1000x700+100+100")
+        self.minsize(700, 500)
+        self.update()
+        self.deiconify()
+        self.state('normal')
+        self.lift()
+        self.focus_force()
+
+        self.db = Database(db_path)
+        self._selected_uid: Optional[str] = None
+
+        self._build_ui()
+        self._load_contacts()
+
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _build_ui(self):
+        # Menüleiste
+        menubar = tk.Menu(self)
+        self.config(menu=menubar)
+
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Datei", menu=file_menu)
+        file_menu.add_command(label="Neuer Kontakt", command=self._new_contact, accelerator="Ctrl+N")
+        file_menu.add_separator()
+        file_menu.add_command(label="vCard importieren...", command=self._import_vcard)
+        file_menu.add_command(label="vCard exportieren...", command=self._export_vcard)
+        file_menu.add_command(label="Als QR-Code anzeigen", command=self._show_qr, accelerator="Ctrl+Q")
+        file_menu.add_command(label="Alle exportieren...", command=self._export_all)
+        file_menu.add_separator()
+        file_menu.add_command(label="Beenden", command=self._on_close)
+
+        edit_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Bearbeiten", menu=edit_menu)
+        edit_menu.add_command(label="Kontakt löschen", command=self._delete_contact, accelerator="Del")
+
+        # Tastenkürzel
+        self.bind("<Control-n>", lambda e: self._new_contact())
+        self.bind("<Control-q>", lambda e: self._show_qr())
+        self.bind("<Delete>", lambda e: self._delete_contact())
+
+        # Hauptlayout: Seitenleiste links, Formular rechts
+        paned = ttk.PanedWindow(self, orient="horizontal")
+        paned.pack(fill="both", expand=True)
+
+        # --- Linke Seite: Kontaktliste ---
+        left = ttk.Frame(paned, width=260)
+        paned.add(left, weight=0)
+
+        # Suchfeld
+        search_frame = ttk.Frame(left)
+        search_frame.pack(fill="x", padx=4, pady=4)
+        ttk.Label(search_frame, text="Suche:").pack(side="left")
+        self._search_var = tk.StringVar()
+        self._search_var.trace_add("write", lambda *_: self._on_search())
+        ttk.Entry(search_frame, textvariable=self._search_var).pack(
+            side="left", fill="x", expand=True, padx=(4, 0)
+        )
+        ttk.Button(search_frame, text="✕", width=2,
+                   command=lambda: self._search_var.set("")).pack(side="left", padx=2)
+
+        # Kontaktliste
+        list_frame = ttk.Frame(left)
+        list_frame.pack(fill="both", expand=True, padx=4, pady=(0, 4))
+
+        self._listbox = tk.Listbox(
+            list_frame, selectmode="single",
+            font=("sans-serif", 11),
+            activestyle="none",
+            cursor="arrow",
+        )
+        scrollbar = ttk.Scrollbar(list_frame, command=self._listbox.yview)
+        self._listbox.config(yscrollcommand=scrollbar.set)
+        self._listbox.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        self._listbox.bind("<<ListboxSelect>>", self._on_select)
+        self._listbox.bind("<Double-Button-1>", self._on_select)
+
+        # Statusleiste
+        self._status_var = tk.StringVar()
+        ttk.Label(left, textvariable=self._status_var, foreground="gray").pack(
+            anchor="w", padx=4, pady=2
+        )
+
+        btn_row = ttk.Frame(left)
+        btn_row.pack(fill="x", padx=4, pady=(0, 4))
+        ttk.Button(btn_row, text="+ Neuer Kontakt", command=self._new_contact).pack(
+            side="left", fill="x", expand=True
+        )
+        ttk.Button(btn_row, text="QR", width=4, command=self._show_qr).pack(side="left", padx=(2, 0))
+
+        # --- Rechte Seite: Kontaktformular ---
+        right = ttk.Frame(paned)
+        paned.add(right, weight=1)
+
+        self._form = ContactForm(right, on_save=self._save_contact)
+        self._form.pack(fill="both", expand=True)
+
+        # Formular initial deaktivieren bis Kontakt ausgewählt
+        self._set_form_enabled(False)
+
+    def _set_form_enabled(self, enabled: bool):
+        state = "normal" if enabled else "disabled"
+        for child in self._form.winfo_children():
+            try:
+                child.configure(state=state)
+            except tk.TclError:
+                pass
+
+    # --- Kontaktverwaltung ---
+
+    def _load_contacts(self, query: str = ""):
+        self._contacts: list[Contact] = (
+            self.db.search(query) if query else self.db.all()
+        )
+        self._listbox.delete(0, "end")
+        for c in self._contacts:
+            self._listbox.insert("end", c.get_display_name())
+        count = self.db.count()
+        self._status_var.set(
+            f"{len(self._contacts)} von {count} Kontakten"
+            if query else f"{count} Kontakte"
+        )
+
+    def _on_search(self):
+        self._load_contacts(self._search_var.get().strip())
+
+    def _on_select(self, event=None):
+        selection = self._listbox.curselection()
+        if not selection:
+            return
+        idx = selection[0]
+        if idx >= len(self._contacts):
+            return
+        contact = self._contacts[idx]
+        self._selected_uid = contact.uid
+        self._set_form_enabled(True)
+        self._form.load(contact)
+
+    def _new_contact(self):
+        self._selected_uid = None
+        self._listbox.selection_clear(0, "end")
+        self._set_form_enabled(True)
+        self._form.new_contact()
+
+    def _save_contact(self, contact: Contact):
+        self.db.save(contact)
+        query = self._search_var.get().strip()
+        self._load_contacts(query)
+        # Gespeicherten Kontakt in der Liste markieren
+        for i, c in enumerate(self._contacts):
+            if c.uid == contact.uid:
+                self._listbox.selection_clear(0, "end")
+                self._listbox.selection_set(i)
+                self._listbox.see(i)
+                self._selected_uid = contact.uid
+                break
+        messagebox.showinfo("Gespeichert", f"Kontakt '{contact.get_display_name()}' gespeichert.")
+
+    def _delete_contact(self):
+        if not self._selected_uid:
+            return
+        contact = self.db.get(self._selected_uid)
+        if not contact:
+            return
+        name = contact.get_display_name()
+        if not messagebox.askyesno(
+            "Kontakt löschen",
+            f"Kontakt '{name}' wirklich löschen?"
+        ):
+            return
+        self.db.delete(self._selected_uid)
+        self._selected_uid = None
+        self._form.new_contact()
+        self._set_form_enabled(False)
+        self._load_contacts(self._search_var.get().strip())
+
+    # --- vCard Import/Export ---
+
+    def _import_vcard(self):
+        path = filedialog.askopenfilename(
+            title="vCard importieren",
+            filetypes=[("vCard Dateien", "*.vcf *.vcard"), ("Alle Dateien", "*.*")]
+        )
+        if not path:
+            return
+        parser = VCardParser()
+        try:
+            contacts = parser.parse_file(path)
+        except Exception as e:
+            messagebox.showerror("Importfehler", str(e))
+            return
+        imported = 0
+        for c in contacts:
+            self.db.save(c)
+            imported += 1
+        self._load_contacts(self._search_var.get().strip())
+        messagebox.showinfo(
+            "Import abgeschlossen",
+            f"{imported} Kontakt(e) importiert."
+        )
+
+    def _export_vcard(self):
+        if not self._selected_uid:
+            messagebox.showwarning("Kein Kontakt", "Bitte zuerst einen Kontakt auswählen.")
+            return
+        contact = self.db.get(self._selected_uid)
+        if not contact:
+            return
+        path = filedialog.asksaveasfilename(
+            title="vCard exportieren",
+            defaultextension=".vcf",
+            initialfile=f"{contact.get_display_name()}.vcf",
+            filetypes=[("vCard Dateien", "*.vcf"), ("Alle Dateien", "*.*")]
+        )
+        if not path:
+            return
+        exporter = VCardExporter()
+        try:
+            exporter.export_contacts([contact], path)
+            messagebox.showinfo("Export", f"Kontakt nach '{path}' exportiert.")
+        except Exception as e:
+            messagebox.showerror("Exportfehler", str(e))
+
+    def _export_all(self):
+        contacts = self.db.all()
+        if not contacts:
+            messagebox.showinfo("Export", "Keine Kontakte vorhanden.")
+            return
+        path = filedialog.asksaveasfilename(
+            title="Alle Kontakte exportieren",
+            defaultextension=".vcf",
+            initialfile="adressbuch.vcf",
+            filetypes=[("vCard Dateien", "*.vcf"), ("Alle Dateien", "*.*")]
+        )
+        if not path:
+            return
+        exporter = VCardExporter()
+        try:
+            exporter.export_contacts(contacts, path)
+            messagebox.showinfo(
+                "Export",
+                f"{len(contacts)} Kontakt(e) nach '{path}' exportiert."
+            )
+        except Exception as e:
+            messagebox.showerror("Exportfehler", str(e))
+
+    def _show_qr(self):
+        if not self._selected_uid:
+            messagebox.showwarning("Kein Kontakt", "Bitte zuerst einen Kontakt auswählen.")
+            return
+        contact = self.db.get(self._selected_uid)
+        if contact:
+            QRDialog(self, contact)
+
+    def _on_close(self):
+        self.db.close()
+        self.destroy()
+
+    def run(self):
+        self.mainloop()
