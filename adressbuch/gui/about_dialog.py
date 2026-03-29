@@ -60,6 +60,6 @@ class AboutDialog(tk.Toplevel):
 
         ttk.Separator(outer, orient="horizontal").pack(fill="x", pady=12)
 
-        ttk.Label(outer, text="Lizenz: MIT", foreground="gray").pack()
+        ttk.Label(outer, text="Lizenz: GNU General Public License v3.0", foreground="gray").pack()
 
         ttk.Button(outer, text="Schließen", command=self.destroy).pack(pady=(16, 0))
