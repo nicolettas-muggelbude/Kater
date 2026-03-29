@@ -46,7 +46,7 @@ python3 main.py
 
 ## Screenshot
 
-> Kopfzeile mit Logo · Kontaktliste · 6-Tab-Formular mit allen vCard-Feldern
+![Kater Adressbuch](assets/kater_image.jpg)
 
 ## Technologie
 
