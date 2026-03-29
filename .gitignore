@@ -1,0 +1,34 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# AppImage Build
+AppDir/
+*.AppImage
+*.spec
+
+# Datenbank (lokal)
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Virtuelle Umgebungen
+venv/
+.venv/
+env/
+
+# System
+.DS_Store
+Thumbs.db
