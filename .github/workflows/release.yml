@@ -36,6 +36,10 @@ jobs:
       - name: Version aus Tag ermitteln
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
+      - name: Versionsnummer in __init__.py aktualisieren
+        run: |
+          sed -i "s/__version__ = \".*\"/__version__ = \"${{ env.VERSION }}\"/" adressbuch/__init__.py
+
       - name: PyInstaller Build
         run: pyinstaller kater.spec
 

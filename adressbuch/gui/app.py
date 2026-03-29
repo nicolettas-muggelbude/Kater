@@ -6,9 +6,11 @@ from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
 from typing import Optional
 
+from .. import __version__
 from ..models.contact import Contact
 from ..storage.database import Database
 from ..storage.vcard import VCardParser, VCardExporter
+from .utils import resolve_asset
 from .contact_form import ContactForm
 from .qr_dialog import QRDialog
 
@@ -18,7 +20,7 @@ class AdressbuchApp(tk.Tk):
 
     def __init__(self, db_path: str | Path):
         super().__init__()
-        self.title("Kater")
+        self.title(f"Kater v{__version__}")
         self.geometry("1000x700+100+100")
         self.minsize(700, 500)
         self.update()
@@ -37,6 +39,15 @@ class AdressbuchApp(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _build_ui(self):
+        # Fenster-Icon
+        try:
+            from PIL import Image, ImageTk
+            _icon = ImageTk.PhotoImage(Image.open(resolve_asset("kater-logo.png")).resize((32, 32)))
+            self.iconphoto(True, _icon)
+            self._icon_ref = _icon  # Referenz halten damit GC es nicht löscht
+        except Exception:
+            pass
+
         # Menüleiste
         menubar = tk.Menu(self)
         self.config(menu=menubar)
@@ -55,6 +66,13 @@ class AdressbuchApp(tk.Tk):
         edit_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Bearbeiten", menu=edit_menu)
         edit_menu.add_command(label="Kontakt löschen", command=self._delete_contact, accelerator="Del")
+
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Hilfe", menu=help_menu)
+        help_menu.add_command(label="Über Kater...", command=self._show_about)
+
+        # Kopfzeile mit Logo und Titel
+        self._build_header()
 
         # Tastenkürzel
         self.bind("<Control-n>", lambda e: self._new_contact())
@@ -120,6 +138,32 @@ class AdressbuchApp(tk.Tk):
 
         # Formular initial deaktivieren bis Kontakt ausgewählt
         self._set_form_enabled(False)
+
+    def _build_header(self):
+        header = tk.Frame(self, bg="#2c5f8a", height=48)
+        header.pack(fill="x", side="top")
+        header.pack_propagate(False)
+
+        try:
+            from PIL import Image, ImageTk
+            _hlogo = ImageTk.PhotoImage(Image.open(resolve_asset("kater-logo.png")).resize((36, 36)))
+            lbl_img = tk.Label(header, image=_hlogo, bg="#2c5f8a")
+            lbl_img.pack(side="left", padx=(10, 4), pady=6)
+            self._header_logo_ref = _hlogo
+        except Exception:
+            pass
+
+        tk.Label(
+            header,
+            text=f"Kater  –  v{__version__}",
+            bg="#2c5f8a",
+            fg="white",
+            font=("sans-serif", 14, "bold"),
+        ).pack(side="left", pady=6)
+
+    def _show_about(self):
+        from .about_dialog import AboutDialog
+        AboutDialog(self)
 
     def _set_form_enabled(self, enabled: bool):
         state = "normal" if enabled else "disabled"
