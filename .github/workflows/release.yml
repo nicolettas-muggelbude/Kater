@@ -1,0 +1,50 @@
+name: AppImage Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Systemabhängigkeiten installieren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-tk \
+            tk-dev \
+            librsvg2-bin \
+            libfuse2
+
+      - name: Python-Pakete installieren
+        run: pip install pyinstaller qrcode Pillow
+
+      - name: Version aus Tag ermitteln
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: PyInstaller Build
+        run: pyinstaller kater.spec
+
+      - name: AppImage bauen
+        run: bash build-appimage.sh "${{ env.VERSION }}"
+
+      - name: Release erstellen und AppImage hochladen
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Kater v${{ env.VERSION }}"
+          files: "Kater-${{ env.VERSION }}-x86_64.AppImage"
+          generate_release_notes: true

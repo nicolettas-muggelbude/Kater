@@ -1,6 +1,7 @@
 """Hauptfenster der Adressbuch-App (tkinter)."""
 
 import tkinter as tk
+import webbrowser
 from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
 from typing import Optional
@@ -17,7 +18,7 @@ class AdressbuchApp(tk.Tk):
 
     def __init__(self, db_path: str | Path):
         super().__init__()
-        self.title("Adressbuch")
+        self.title("Kater")
         self.geometry("1000x700+100+100")
         self.minsize(700, 500)
         self.update()
@@ -31,6 +32,7 @@ class AdressbuchApp(tk.Tk):
 
         self._build_ui()
         self._load_contacts()
+        self.after(3000, self._start_update_check)
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -272,6 +274,26 @@ class AdressbuchApp(tk.Tk):
         contact = self.db.get(self._selected_uid)
         if contact:
             QRDialog(self, contact)
+
+    # --- Update-Checker ---
+
+    def _start_update_check(self):
+        from ..updater import check_for_update_async
+        check_for_update_async(self._on_update_result)
+
+    def _on_update_result(self, info: dict | None):
+        if info:
+            self.after(0, lambda: self._show_update_dialog(info))
+
+    def _show_update_dialog(self, info: dict):
+        version = info["version"]
+        url = info["url"]
+        if messagebox.askyesno(
+            "Update verfügbar",
+            f"Kater {version} ist verfügbar!\n\nJetzt herunterladen?",
+            icon="info",
+        ):
+            webbrowser.open(url)
 
     def _on_close(self):
         self.db.close()

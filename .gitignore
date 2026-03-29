@@ -12,7 +12,7 @@ build/
 # AppImage Build
 AppDir/
 *.AppImage
-*.spec
+appimagetool-x86_64.AppImage
 
 # Datenbank (lokal)
 *.db
