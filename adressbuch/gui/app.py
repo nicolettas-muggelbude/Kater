@@ -336,14 +336,90 @@ class AdressbuchApp(tk.Tk):
             self.after(0, lambda: self._show_update_dialog(info))
 
     def _show_update_dialog(self, info: dict):
+        from ..updater import get_install_path, download_appimage
+
         version = info["version"]
-        url = info["url"]
-        if messagebox.askyesno(
+        download_url = info.get("download_url")
+        install_path = get_install_path()
+
+        # In-App-Update nur wenn AppImage-Pfad bekannt und Download-URL vorhanden
+        if download_url and install_path:
+            self._run_in_app_update(version, download_url, install_path)
+        else:
+            # Fallback: Browser öffnen
+            if messagebox.askyesno(
+                "Update verfügbar",
+                f"Kater {version} ist verfügbar!\n\nZur Download-Seite?",
+                icon="info",
+            ):
+                webbrowser.open(info["url"])
+
+    def _run_in_app_update(self, version: str, download_url: str, install_path):
+        from ..updater import download_appimage
+        import threading
+
+        if not messagebox.askyesno(
             "Update verfügbar",
-            f"Kater {version} ist verfügbar!\n\nJetzt herunterladen?",
+            f"Kater {version} ist verfügbar!\n\nJetzt aktualisieren?",
             icon="info",
         ):
-            webbrowser.open(url)
+            return
+
+        # Fortschrittsdialog
+        dlg = tk.Toplevel(self)
+        dlg.title("Kater wird aktualisiert…")
+        dlg.resizable(False, False)
+        dlg.grab_set()
+        dlg.protocol("WM_DELETE_WINDOW", lambda: None)  # nicht schließbar
+
+        tk.Label(dlg, text=f"Lade Kater {version} herunter…", padx=20, pady=12).pack()
+
+        progress_var = tk.DoubleVar()
+        bar = ttk.Progressbar(dlg, variable=progress_var, maximum=100, length=320)
+        bar.pack(padx=20, pady=(0, 4))
+
+        size_label = tk.Label(dlg, text="", foreground="gray", padx=20)
+        size_label.pack(pady=(0, 12))
+
+        def on_progress(done: int, total: int):
+            if total:
+                pct = done / total * 100
+                mb_done = done / 1_048_576
+                mb_total = total / 1_048_576
+                self.after(0, lambda: (
+                    progress_var.set(pct),
+                    size_label.config(text=f"{mb_done:.1f} / {mb_total:.1f} MB"),
+                ))
+            else:
+                bar.config(mode="indeterminate")
+                self.after(0, bar.start)
+
+        def do_download():
+            try:
+                download_appimage(download_url, install_path, on_progress)
+                self.after(0, lambda: _on_success())
+            except Exception as e:
+                self.after(0, lambda: _on_error(str(e)))
+
+        def _on_success():
+            dlg.destroy()
+            messagebox.showinfo(
+                "Update erfolgreich",
+                f"Kater {version} wurde installiert.\n\nBitte Kater neu starten."
+            )
+
+        def _on_error(msg: str):
+            dlg.destroy()
+            messagebox.showerror("Update fehlgeschlagen", f"Download fehlgeschlagen:\n{msg}")
+
+        threading.Thread(target=do_download, daemon=True).start()
+        self._center_window(dlg)
+
+    def _center_window(self, win: tk.Toplevel):
+        win.update_idletasks()
+        x = self.winfo_x() + (self.winfo_width() - win.winfo_width()) // 2
+        y = self.winfo_y() + (self.winfo_height() - win.winfo_height()) // 2
+        win.geometry(f"+{x}+{y}")
 
     def _on_close(self):
         self.db.close()
