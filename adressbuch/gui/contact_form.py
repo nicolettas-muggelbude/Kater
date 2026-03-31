@@ -190,13 +190,19 @@ class ContactForm(ttk.Frame):
         f.pack(fill="both", expand=True, padx=8, pady=8)
         f.columnconfigure(1, weight=1)
 
-        # Datumsfelder als Text (YYYY-MM-DD)
+        # Datumsfelder als Text (TT.MM.JJJJ)
         self._v_birthday = labeled_entry(f, "Geburtstag:", 0, width=12)
-        ttk.Label(f, text="(Format: YYYY-MM-DD)", foreground="gray").grid(
+        ttk.Label(f, text="(Format: TT.MM.JJJJ)", foreground="gray").grid(
             row=0, column=2, sticky="w"
         )
         self._v_anniversary = labeled_entry(f, "Jahrestag:", 1, width=12)
+        ttk.Label(f, text="(Format: TT.MM.JJJJ)", foreground="gray").grid(
+            row=1, column=2, sticky="w"
+        )
         self._v_deathdate = labeled_entry(f, "Sterbetag:", 2, width=12)
+        ttk.Label(f, text="(Format: TT.MM.JJJJ)", foreground="gray").grid(
+            row=2, column=2, sticky="w"
+        )
 
         ttk.Separator(f, orient="horizontal").grid(
             row=3, column=0, columnspan=3, sticky="ew", pady=8
@@ -271,11 +277,11 @@ class ContactForm(ttk.Frame):
 
         # Persönlich
         if contact.birthday:
-            self._v_birthday.set(contact.birthday.isoformat())
+            self._v_birthday.set(contact.birthday.strftime("%d.%m.%Y"))
         if contact.anniversary:
-            self._v_anniversary.set(contact.anniversary.isoformat())
+            self._v_anniversary.set(contact.anniversary.strftime("%d.%m.%Y"))
         if contact.deathdate:
-            self._v_deathdate.set(contact.deathdate.isoformat())
+            self._v_deathdate.set(contact.deathdate.strftime("%d.%m.%Y"))
         self._v_lang.set(", ".join(contact.languages))
         self._v_tz.set(contact.timezone)
         self._v_categories.set(", ".join(contact.categories))
@@ -308,14 +314,26 @@ class ContactForm(ttk.Frame):
         value = value.strip()
         if not value:
             return None
+        # Deutsches Format TT.MM.JJJJ
+        if "." in value:
+            try:
+                return date(
+                    int(value[6:10]),
+                    int(value[3:5]),
+                    int(value[0:2]),
+                )
+            except (ValueError, IndexError):
+                pass
+        # ISO-Format YYYY-MM-DD als Fallback
         try:
             return date.fromisoformat(value)
         except ValueError:
-            messagebox.showwarning(
-                "Ungültiges Datum",
-                f"'{value}' ist kein gültiges Datum (erwartet: YYYY-MM-DD)"
-            )
-            return None
+            pass
+        messagebox.showwarning(
+            "Ungültiges Datum",
+            f"'{value}' ist kein gültiges Datum.\nErwartet: TT.MM.JJJJ (z.B. 31.03.1990)"
+        )
+        return None
 
     def get_contact(self) -> Contact:
         """Liest das Formular aus und gibt einen Contact zurück."""

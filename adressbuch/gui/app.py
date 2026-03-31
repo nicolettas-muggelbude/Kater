@@ -77,7 +77,7 @@ class AdressbuchApp(tk.Tk):
         # Tastenkürzel
         self.bind("<Control-n>", lambda e: self._new_contact())
         self.bind("<Control-q>", lambda e: self._show_qr())
-        self.bind("<Delete>", lambda e: self._delete_contact())
+        self.bind("<Delete>", self._on_delete_key)
 
         # Hauptlayout: Seitenleiste links, Formular rechts
         paned = ttk.PanedWindow(self, orient="horizontal")
@@ -172,6 +172,12 @@ class AdressbuchApp(tk.Tk):
                 child.configure(state=state)
             except tk.TclError:
                 pass
+
+    def _on_delete_key(self, event):
+        # Entf-Taste in Eingabefeldern nicht abfangen
+        if isinstance(event.widget, (tk.Entry, tk.Text, ttk.Entry)):
+            return
+        self._delete_contact()
 
     # --- Kontaktverwaltung ---
 
