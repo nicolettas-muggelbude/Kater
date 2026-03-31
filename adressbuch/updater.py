@@ -13,7 +13,8 @@ from . import __version__
 
 GITHUB_REPO = "nicolettas-muggelbude/Kater"
 RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-APPIMAGE_ASSET = "Kater-x86_64.AppImage"
+APPIMAGE_ASSET = "Kater-x86_64.AppImage"   # Name des GitHub-Release-Assets
+APPIMAGE_INSTALLED = "Kater.AppImage"       # Name nach Installation via install.sh
 
 
 def _parse_version(v: str) -> tuple[int, ...]:
@@ -38,7 +39,7 @@ def get_install_path() -> Optional[Path]:
     appimage = os.environ.get("APPIMAGE")
     if appimage:
         return Path(appimage)
-    candidate = Path.home() / ".local" / "bin" / APPIMAGE_ASSET
+    candidate = Path.home() / ".local" / "bin" / APPIMAGE_INSTALLED
     if candidate.exists():
         return candidate
     return None
