@@ -56,10 +56,16 @@ class AdressbuchApp(tk.Tk):
         menubar.add_cascade(label="Datei", menu=file_menu)
         file_menu.add_command(label="Neuer Kontakt", command=self._new_contact, accelerator="Ctrl+N")
         file_menu.add_separator()
-        file_menu.add_command(label="vCard importieren...", command=self._import_vcard)
-        file_menu.add_command(label="vCard exportieren...", command=self._export_vcard)
+
+        tb_menu = tk.Menu(file_menu, tearoff=0)
+        file_menu.add_cascade(label="Thunderbird / vCard", menu=tb_menu)
+        tb_menu.add_command(label="Importieren...", command=self._import_vcard)
+        tb_menu.add_separator()
+        tb_menu.add_command(label="Aktuellen Kontakt exportieren...", command=self._export_vcard)
+        tb_menu.add_command(label="Markierte Kontakte exportieren...", command=self._export_selected)
+        tb_menu.add_command(label="Alle Kontakte exportieren...", command=self._export_all)
+
         file_menu.add_command(label="Als QR-Code anzeigen", command=self._show_qr, accelerator="Ctrl+Q")
-        file_menu.add_command(label="Alle exportieren...", command=self._export_all)
         file_menu.add_separator()
         file_menu.add_command(label="Beenden", command=self._on_close)
 
@@ -104,7 +110,7 @@ class AdressbuchApp(tk.Tk):
         list_frame.pack(fill="both", expand=True, padx=4, pady=(0, 4))
 
         self._listbox = tk.Listbox(
-            list_frame, selectmode="single",
+            list_frame, selectmode="extended",
             font=("sans-serif", 11),
             activestyle="none",
             cursor="arrow",
@@ -201,13 +207,17 @@ class AdressbuchApp(tk.Tk):
         selection = self._listbox.curselection()
         if not selection:
             return
-        idx = selection[0]
+        # Bei Mehrfachauswahl: letzten Eintrag im Formular anzeigen
+        idx = selection[-1]
         if idx >= len(self._contacts):
             return
         contact = self._contacts[idx]
         self._selected_uid = contact.uid
         self._set_form_enabled(True)
         self._form.load(contact)
+        # Statuszeile bei Mehrfachauswahl aktualisieren
+        if len(selection) > 1:
+            self._status_var.set(f"{len(selection)} Kontakte markiert")
 
     def _new_contact(self):
         self._selected_uid = None
@@ -291,6 +301,41 @@ class AdressbuchApp(tk.Tk):
         try:
             exporter.export_contacts([contact], path)
             messagebox.showinfo("Export", f"Kontakt nach '{path}' exportiert.")
+        except Exception as e:
+            messagebox.showerror("Exportfehler", str(e))
+
+    def _export_selected(self):
+        selection = self._listbox.curselection()
+        if not selection:
+            messagebox.showwarning(
+                "Keine Auswahl",
+                "Bitte zuerst Kontakte in der Liste markieren.\n"
+                "(Strg+Klick für mehrere, Umschalt+Klick für Bereich)"
+            )
+            return
+        contacts = [self._contacts[i] for i in selection if i < len(self._contacts)]
+        if not contacts:
+            return
+        default_name = (
+            f"{contacts[0].get_display_name()}.vcf"
+            if len(contacts) == 1
+            else f"{len(contacts)}_kontakte.vcf"
+        )
+        path = filedialog.asksaveasfilename(
+            title=f"{len(contacts)} Kontakt(e) exportieren",
+            defaultextension=".vcf",
+            initialfile=default_name,
+            filetypes=[("vCard Dateien", "*.vcf"), ("Alle Dateien", "*.*")]
+        )
+        if not path:
+            return
+        exporter = VCardExporter()
+        try:
+            exporter.export_contacts(contacts, path)
+            messagebox.showinfo(
+                "Export",
+                f"{len(contacts)} Kontakt(e) nach '{path}' exportiert."
+            )
         except Exception as e:
             messagebox.showerror("Exportfehler", str(e))
 

@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Neue Version (z.B. 1.2.0 — ohne "v")'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -15,6 +21,25 @@ jobs:
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v4
+        with:
+          # fetch-depth 0 damit git push --tags funktioniert
+          fetch-depth: 0
+
+      - name: Git konfigurieren (nur bei workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Version in __init__.py aktualisieren und committen (nur bei workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          sed -i 's/__version__ = ".*"/__version__ = "${{ inputs.version }}"/' adressbuch/__init__.py
+          git add adressbuch/__init__.py
+          git commit -m "chore: Version ${{ inputs.version }}"
+          git tag "v${{ inputs.version }}"
+          git push
+          git push --tags
 
       - name: Python einrichten
         uses: actions/setup-python@v5
@@ -33,10 +58,16 @@ jobs:
       - name: Python-Pakete installieren
         run: pip install pyinstaller qrcode Pillow
 
-      - name: Version aus Tag ermitteln
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      - name: Version ermitteln
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+          fi
 
-      - name: Versionsnummer in __init__.py aktualisieren
+      - name: Versionsnummer in __init__.py aktualisieren (nur bei Tag-Push)
+        if: github.event_name != 'workflow_dispatch'
         run: |
           sed -i "s/__version__ = \".*\"/__version__ = \"${{ env.VERSION }}\"/" adressbuch/__init__.py
 
@@ -51,6 +82,7 @@ jobs:
       - name: Release erstellen und AppImage hochladen
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: "v${{ env.VERSION }}"
           name: "Kater v${{ env.VERSION }}"
           files: |
             Kater-${{ env.VERSION }}-x86_64.AppImage
