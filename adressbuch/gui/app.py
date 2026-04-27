@@ -71,7 +71,7 @@ class AdressbuchApp(tk.Tk):
 
         edit_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Bearbeiten", menu=edit_menu)
-        edit_menu.add_command(label="Als vCard kopieren", command=self._copy_to_clipboard, accelerator="Ctrl+C")
+        edit_menu.add_command(label="Als vCard kopieren", command=self._copy_to_clipboard, accelerator="Ctrl+Shift+C")
         edit_menu.add_separator()
         edit_menu.add_command(label="Kontakt löschen", command=self._delete_contact, accelerator="Del")
 
@@ -85,7 +85,7 @@ class AdressbuchApp(tk.Tk):
         # Tastenkürzel
         self.bind("<Control-n>", lambda e: self._new_contact())
         self.bind("<Control-q>", lambda e: self._show_qr())
-        self.bind("<Control-c>", lambda e: self._copy_to_clipboard())
+        self.bind("<Control-C>", lambda e: self._copy_to_clipboard())
         self.bind("<Delete>", self._on_delete_key)
 
         # Hauptlayout: Seitenleiste links, Formular rechts
