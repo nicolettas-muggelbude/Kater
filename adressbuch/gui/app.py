@@ -206,6 +206,22 @@ class AdressbuchApp(tk.Tk):
     def _on_search(self):
         self._load_contacts(self._search_var.get().strip())
 
+    def _check_unsaved(self) -> bool:
+        """Prüft auf ungespeicherte Änderungen. Gibt False zurück wenn der Nutzer abbricht."""
+        if not self._form.is_dirty():
+            return True
+        answer = messagebox.askyesnocancel(
+            "Ungespeicherte Änderungen",
+            "Es gibt ungespeicherte Änderungen.\nMöchten Sie diese speichern?",
+        )
+        if answer is None:
+            return False
+        if answer:
+            self._form._save()
+            if self._form.is_dirty():
+                return False
+        return True
+
     def _on_select(self, event=None):
         selection = self._listbox.curselection()
         if not selection:
@@ -215,6 +231,16 @@ class AdressbuchApp(tk.Tk):
         if idx >= len(self._contacts):
             return
         contact = self._contacts[idx]
+        if contact.uid == self._selected_uid:
+            return
+        if not self._check_unsaved():
+            # Auswahl zurücksetzen auf den aktuellen Kontakt
+            for i, c in enumerate(self._contacts):
+                if c.uid == self._selected_uid:
+                    self._listbox.selection_clear(0, "end")
+                    self._listbox.selection_set(i)
+                    break
+            return
         self._selected_uid = contact.uid
         self._set_form_enabled(True)
         self._form.load(contact)
@@ -223,6 +249,8 @@ class AdressbuchApp(tk.Tk):
             self._status_var.set(f"{len(selection)} Kontakte markiert")
 
     def _new_contact(self):
+        if not self._check_unsaved():
+            return
         self._selected_uid = None
         self._listbox.selection_clear(0, "end")
         self._set_form_enabled(True)
@@ -489,6 +517,8 @@ class AdressbuchApp(tk.Tk):
         win.geometry(f"+{x}+{y}")
 
     def _on_close(self):
+        if not self._check_unsaved():
+            return
         self.db.close()
         self.destroy()
 

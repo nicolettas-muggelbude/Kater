@@ -25,6 +25,8 @@ class ContactForm(ttk.Frame):
         super().__init__(parent, **kwargs)
         self.on_save = on_save
         self._contact: Optional[Contact] = None
+        self._dirty = False
+        self._loading = False
         self._build_ui()
 
     def _build_ui(self):
@@ -38,12 +40,46 @@ class ContactForm(ttk.Frame):
         self._build_tab_organisation()
         self._build_tab_persoenlich()
         self._build_tab_notiz()
+        self._setup_dirty_tracking()
 
         # Speichern-Button
         btn_frame = ttk.Frame(self)
         btn_frame.pack(fill="x", padx=4, pady=4)
         ttk.Button(btn_frame, text="Speichern", command=self._save).pack(side="right", padx=4)
         ttk.Button(btn_frame, text="Zurücksetzen", command=self._reset).pack(side="right")
+
+    # --- Dirty-Tracking ---
+
+    def _mark_dirty(self, *args):
+        if not self._loading:
+            self._dirty = True
+
+    def is_dirty(self) -> bool:
+        return self._dirty
+
+    def _on_note_modified(self, event=None):
+        if self._txt_note.edit_modified():
+            self._mark_dirty()
+            self._txt_note.edit_modified(False)
+
+    def _setup_dirty_tracking(self):
+        for var in [
+            self._v_prefix, self._v_given, self._v_additional,
+            self._v_family, self._v_suffix, self._v_display,
+            self._v_nickname, self._v_gender,
+            self._v_org, self._v_org_unit, self._v_title, self._v_role,
+            self._v_birthday, self._v_anniversary, self._v_deathdate,
+            self._v_lang, self._v_tz, self._v_categories,
+        ]:
+            var.trace_add("write", self._mark_dirty)
+        for d in self._addr_vars.values():
+            for var in d.values():
+                var.trace_add("write", self._mark_dirty)
+        self._phone_frame.on_change = self._mark_dirty
+        self._email_frame.on_change = self._mark_dirty
+        self._url_frame.on_change = self._mark_dirty
+        self._im_frame.on_change = self._mark_dirty
+        self._txt_note.bind("<<Modified>>", self._on_note_modified)
 
     # --- Tabs ---
 
@@ -199,6 +235,7 @@ class ContactForm(ttk.Frame):
 
     def load(self, contact: Contact):
         """Füllt das Formular mit einem Kontakt."""
+        self._loading = True
         self._contact = contact
         self._reset_fields()
 
@@ -269,6 +306,9 @@ class ContactForm(ttk.Frame):
         # Notiz
         self._txt_note.delete("1.0", "end")
         self._txt_note.insert("1.0", contact.note)
+        self._txt_note.edit_modified(False)
+        self._loading = False
+        self._dirty = False
 
     def _reset_fields(self):
         """Leert alle Formularfelder."""
@@ -392,6 +432,7 @@ class ContactForm(ttk.Frame):
             )
             return
         self.on_save(contact)
+        self._dirty = False
 
     def _reset(self):
         if self._contact:
@@ -401,5 +442,9 @@ class ContactForm(ttk.Frame):
 
     def new_contact(self):
         """Formular für neuen Kontakt leeren."""
+        self._loading = True
         self._contact = None
         self._reset_fields()
+        self._txt_note.edit_modified(False)
+        self._loading = False
+        self._dirty = False
