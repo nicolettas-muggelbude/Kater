@@ -71,6 +71,8 @@ class AdressbuchApp(tk.Tk):
 
         edit_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Bearbeiten", menu=edit_menu)
+        edit_menu.add_command(label="Als vCard kopieren", command=self._copy_to_clipboard, accelerator="Ctrl+C")
+        edit_menu.add_separator()
         edit_menu.add_command(label="Kontakt löschen", command=self._delete_contact, accelerator="Del")
 
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -83,6 +85,7 @@ class AdressbuchApp(tk.Tk):
         # Tastenkürzel
         self.bind("<Control-n>", lambda e: self._new_contact())
         self.bind("<Control-q>", lambda e: self._show_qr())
+        self.bind("<Control-c>", lambda e: self._copy_to_clipboard())
         self.bind("<Delete>", self._on_delete_key)
 
         # Hauptlayout: Seitenleiste links, Formular rechts
@@ -361,6 +364,25 @@ class AdressbuchApp(tk.Tk):
             )
         except Exception as e:
             messagebox.showerror("Exportfehler", str(e))
+
+    def _copy_to_clipboard(self):
+        selection = self._listbox.curselection()
+        if selection:
+            contacts = [self._contacts[i] for i in selection if i < len(self._contacts)]
+        elif self._selected_uid:
+            contact = self.db.get(self._selected_uid)
+            contacts = [contact] if contact else []
+        else:
+            messagebox.showwarning("Kein Kontakt", "Bitte zuerst einen Kontakt auswählen.")
+            return
+        if not contacts:
+            return
+        exporter = VCardExporter()
+        text = "\r\n".join(exporter.contact_to_vcard(c) for c in contacts)
+        self.clipboard_clear()
+        self.clipboard_append(text)
+        n = len(contacts)
+        messagebox.showinfo("Kopiert", f"{n} Kontakt(e) als vCard in die Zwischenablage kopiert.")
 
     def _show_qr(self):
         if not self._selected_uid:
