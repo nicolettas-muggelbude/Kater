@@ -69,7 +69,7 @@ chmod +x "$APPDIR/AppRun"
 
 # AppImage erzeugen
 echo "Erzeuge AppImage..."
-ARCH=x86_64 ./appimagetool-x86_64.AppImage "$APPDIR" "$APPIMAGE_NAME"
+ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run "$APPDIR" "$APPIMAGE_NAME"
 
 echo ""
 echo "Fertig: $(pwd)/$APPIMAGE_NAME"
