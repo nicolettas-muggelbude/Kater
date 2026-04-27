@@ -1,4 +1,5 @@
 name: AppImage Release
+run-name: "Release v${{ inputs.version || github.ref_name }}"
 
 on:
   push:
