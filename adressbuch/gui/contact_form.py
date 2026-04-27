@@ -11,7 +11,6 @@ from .widgets import labeled_entry, labeled_combo, MultiEntryFrame
 
 PHONE_TYPES = ["voice", "cell", "home", "work", "fax", "pager", "text", "video"]
 EMAIL_TYPES = ["internet", "home", "work"]
-ADDR_TYPES = ["home", "work", "other"]
 GENDER_OPTIONS = ["", "M", "F", "O", "N", "U"]
 IM_TYPES = ["xmpp", "matrix", "signal", "telegram", "other"]
 
@@ -113,61 +112,31 @@ class ContactForm(ttk.Frame):
     def _build_tab_adressen(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Adressen")
-        self._addr_tab = tab
-        self._addr_frames: list[dict] = []
-        self._addr_outer = ttk.Frame(tab)
-        self._addr_outer.pack(fill="both", expand=True, padx=4, pady=4)
 
-        ttk.Button(tab, text="+ Adresse hinzufügen",
-                   command=self._add_address_row).pack(anchor="w", padx=8, pady=4)
+        addr_nb = ttk.Notebook(tab)
+        addr_nb.pack(fill="both", expand=True, padx=4, pady=4)
 
-    def _add_address_row(self, addr: Optional[Address] = None):
-        frame = ttk.LabelFrame(
-            self._addr_outer,
-            text=f"Adresse {len(self._addr_frames) + 1}",
-            padding=6
-        )
-        frame.pack(fill="x", pady=4)
-        frame.columnconfigure(1, weight=1)
-
-        def remove():
-            frame.destroy()
-            self._addr_frames.remove(d)
-
-        v_type = labeled_combo(frame, "Typ:", 0, ADDR_TYPES, width=10)
-        v_street = labeled_entry(frame, "Straße:", 1)
-        v_extended = labeled_entry(frame, "Adresszusatz:", 2)
-        v_postal = labeled_entry(frame, "PLZ:", 3, width=10)
-        v_city = labeled_entry(frame, "Ort:", 4)
-        v_region = labeled_entry(frame, "Bundesland:", 5)
-        v_country = labeled_entry(frame, "Land:", 6)
-        v_pobox = labeled_entry(frame, "Postfach:", 7)
-        v_pref = tk.BooleanVar()
-        ttk.Checkbutton(frame, text="Bevorzugt", variable=v_pref).grid(
-            row=8, column=1, sticky="w"
-        )
-        ttk.Button(frame, text="Entfernen", command=remove).grid(
-            row=9, column=1, sticky="e", pady=4
-        )
-
-        d = {
-            "frame": frame,
-            "type": v_type, "street": v_street, "extended": v_extended,
-            "postal": v_postal, "city": v_city, "region": v_region,
-            "country": v_country, "pobox": v_pobox, "preferred": v_pref,
-        }
-        self._addr_frames.append(d)
-
-        if addr:
-            v_type.set(addr.label or "home")
-            v_street.set(addr.street)
-            v_extended.set(addr.extended)
-            v_postal.set(addr.postal_code)
-            v_city.set(addr.city)
-            v_region.set(addr.region)
-            v_country.set(addr.country)
-            v_pobox.set(addr.po_box)
-            v_pref.set(addr.preferred)
+        self._addr_vars: dict[str, dict] = {}
+        for key, title in [("home", "Privat"), ("work", "Arbeit"), ("other", "Sonstige")]:
+            sub = ttk.Frame(addr_nb)
+            addr_nb.add(sub, text=title)
+            sub.columnconfigure(1, weight=1)
+            v_street   = labeled_entry(sub, "Straße:", 0)
+            v_extended = labeled_entry(sub, "Adresszusatz:", 1)
+            v_postal   = labeled_entry(sub, "PLZ:", 2, width=10)
+            v_city     = labeled_entry(sub, "Ort:", 3)
+            v_region   = labeled_entry(sub, "Bundesland:", 4)
+            v_country  = labeled_entry(sub, "Land:", 5)
+            v_pobox    = labeled_entry(sub, "Postfach:", 6)
+            v_pref     = tk.BooleanVar()
+            ttk.Checkbutton(sub, text="Bevorzugt", variable=v_pref).grid(
+                row=7, column=1, sticky="w", pady=4
+            )
+            self._addr_vars[key] = {
+                "street": v_street, "extended": v_extended, "postal": v_postal,
+                "city": v_city, "region": v_region, "country": v_country,
+                "pobox": v_pobox, "preferred": v_pref,
+            }
 
     def _build_tab_organisation(self):
         tab = ttk.Frame(self.notebook)
@@ -265,9 +234,20 @@ class ContactForm(ttk.Frame):
                 im.preferred
             )
 
-        # Adressen
+        # Adressen (erste Adresse je Typ laden)
         for addr in contact.addresses:
-            self._add_address_row(addr)
+            key = addr.label if addr.label in self._addr_vars else "other"
+            d = self._addr_vars[key]
+            if d["street"].get() or d["city"].get():
+                continue  # bereits belegt, ersten Eintrag behalten
+            d["street"].set(addr.street)
+            d["extended"].set(addr.extended)
+            d["postal"].set(addr.postal_code)
+            d["city"].set(addr.city)
+            d["region"].set(addr.region)
+            d["country"].set(addr.country)
+            d["pobox"].set(addr.po_box)
+            d["preferred"].set(addr.preferred)
 
         # Organisation
         self._v_org.set(contact.organization)
@@ -305,9 +285,9 @@ class ContactForm(ttk.Frame):
         self._email_frame.clear()
         self._url_frame.clear()
         self._im_frame.clear()
-        for d in list(self._addr_frames):
-            d["frame"].destroy()
-        self._addr_frames.clear()
+        for d in self._addr_vars.values():
+            for key, var in d.items():
+                var.set(False if key == "preferred" else "")
         self._txt_note.delete("1.0", "end")
 
     def _parse_date(self, value: str) -> Optional[date]:
@@ -365,15 +345,17 @@ class ContactForm(ttk.Frame):
         ]
 
         c.addresses = []
-        for d in self._addr_frames:
-            if not d["frame"].winfo_exists():
+        for label, d in self._addr_vars.items():
+            street = d["street"].get().strip()
+            city   = d["city"].get().strip()
+            if not street and not city:
                 continue
             c.addresses.append(Address(
-                label=d["type"].get(),
-                street=d["street"].get().strip(),
+                label=label,
+                street=street,
                 extended=d["extended"].get().strip(),
                 postal_code=d["postal"].get().strip(),
-                city=d["city"].get().strip(),
+                city=city,
                 region=d["region"].get().strip(),
                 country=d["country"].get().strip(),
                 po_box=d["pobox"].get().strip(),
