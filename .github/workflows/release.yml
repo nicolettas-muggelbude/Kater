@@ -11,6 +11,11 @@ on:
         description: 'Neue Version (z.B. 1.2.0 — ohne "v")'
         required: true
         type: string
+      draft:
+        description: 'Als Draft-Release veröffentlichen'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -84,6 +89,7 @@ jobs:
         with:
           tag_name: "v${{ env.VERSION }}"
           name: "Kater v${{ env.VERSION }}"
+          draft: ${{ inputs.draft || false }}
           files: |
             Kater-${{ env.VERSION }}-x86_64.AppImage
             Kater-x86_64.AppImage
