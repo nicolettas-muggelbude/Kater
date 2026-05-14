@@ -328,6 +328,15 @@ class Database:
         self._conn.execute("DELETE FROM groups WHERE id=?", (group_id,))
         self._conn.commit()
 
+    def merge_groups(self, source_id: int, target_id: int):
+        """Alle Kontakte aus source in target verschieben, source löschen."""
+        self._conn.execute("""
+            INSERT OR IGNORE INTO contact_groups (contact_uid, group_id)
+            SELECT contact_uid, ? FROM contact_groups WHERE group_id = ?
+        """, (target_id, source_id))
+        self._conn.execute("DELETE FROM groups WHERE id=?", (source_id,))
+        self._conn.commit()
+
     def count_contacts_in_group(self, group_id: int) -> int:
         """Anzahl Kontakte in einer Gruppe."""
         return self._conn.execute(
