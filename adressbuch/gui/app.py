@@ -131,7 +131,8 @@ class AdressbuchApp(tk.Tk):
             self._group_frame.pack(fill="x")
 
         # Suchfeld
-        search_frame = ttk.Frame(left)
+        self._search_frame = ttk.Frame(left)
+        search_frame = self._search_frame
         search_frame.pack(fill="x", padx=4, pady=4)
         ttk.Label(search_frame, text="Suche:").pack(side="left")
         self._search_var = tk.StringVar()
@@ -390,7 +391,7 @@ class AdressbuchApp(tk.Tk):
         self.settings.groups_enabled = enabled
         if enabled:
             self._refresh_group_filter()
-            self._group_frame.pack(fill="x")
+            self._group_frame.pack(fill="x", before=self._search_frame)
         else:
             self._selected_group_id = None
             self._group_combo_var.set("Alle Kontakte")
