@@ -93,4 +93,5 @@ jobs:
           files: |
             Kater-${{ env.VERSION }}-x86_64.AppImage
             Kater-x86_64.AppImage
+            install.sh
           generate_release_notes: true
