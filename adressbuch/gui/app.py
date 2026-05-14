@@ -9,9 +9,12 @@ from typing import Optional
 from .. import __version__
 from ..models.contact import Contact
 from ..storage.database import Database
+from ..storage.settings import Settings
 from ..storage.vcard import VCardParser, VCardExporter
+from ..storage.csv_import import ThunderbirdCsvParser
 from .utils import resolve_asset
 from .contact_form import ContactForm
+from .csv_import_dialog import CsvImportDialog
 from .qr_dialog import QRDialog
 
 
@@ -30,6 +33,8 @@ class AdressbuchApp(tk.Tk):
         self.focus_force()
 
         self.db = Database(db_path)
+        db_path = Path(db_path)
+        self.settings = Settings(db_path.parent / (db_path.stem + "_settings.json"))
         self._selected_uid: Optional[str] = None
 
         self._build_ui()
@@ -59,11 +64,21 @@ class AdressbuchApp(tk.Tk):
 
         tb_menu = tk.Menu(file_menu, tearoff=0)
         file_menu.add_cascade(label="Thunderbird / vCard", menu=tb_menu)
-        tb_menu.add_command(label="Importieren...", command=self._import_vcard)
+        tb_menu.add_command(label="vCard importieren...", command=self._import_vcard)
+        tb_menu.add_command(label="CSV importieren (Thunderbird)...", command=self._import_csv)
         tb_menu.add_separator()
         tb_menu.add_command(label="Aktuellen Kontakt exportieren...", command=self._export_vcard)
         tb_menu.add_command(label="Markierte Kontakte exportieren...", command=self._export_selected)
         tb_menu.add_command(label="Alle Kontakte exportieren...", command=self._export_all)
+
+        extras_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Extras", menu=extras_menu)
+        self._groups_var = tk.BooleanVar(value=self.settings.groups_enabled)
+        extras_menu.add_checkbutton(
+            label="Gruppen aktivieren",
+            variable=self._groups_var,
+            command=self._toggle_groups,
+        )
 
         file_menu.add_command(label="Als QR-Code anzeigen", command=self._show_qr, accelerator="Ctrl+Q")
         file_menu.add_separator()
@@ -289,6 +304,49 @@ class AdressbuchApp(tk.Tk):
         self._load_contacts(self._search_var.get().strip())
 
     # --- vCard Import/Export ---
+
+    def _import_csv(self):
+        path = filedialog.askopenfilename(
+            title="Thunderbird-CSV importieren",
+            filetypes=[("CSV Dateien", "*.csv"), ("Alle Dateien", "*.*")]
+        )
+        if not path:
+            return
+        parser = ThunderbirdCsvParser()
+        try:
+            contacts = parser.parse_file(path)
+        except Exception as e:
+            messagebox.showerror("Importfehler", str(e))
+            return
+        if not contacts:
+            messagebox.showinfo("CSV-Import", "Keine Kontakte in der Datei gefunden.")
+            return
+        filename = Path(path).stem
+        CsvImportDialog(
+            self, contacts, filename,
+            on_import=self._finish_csv_import,
+        )
+
+    def _finish_csv_import(self, contacts: list[Contact], group_name: str):
+        group_id: int | None = None
+        if group_name:
+            self.settings.groups_enabled = True
+            self._groups_var.set(True)
+            group_id = self.db.create_group(group_name)
+
+        for c in contacts:
+            self.db.save(c)
+            if group_id is not None:
+                self.db.add_contact_to_group(c.uid, group_id)
+
+        self._load_contacts(self._search_var.get().strip())
+        msg = f"{len(contacts)} Kontakt(e) importiert."
+        if group_name:
+            msg += f'\nGruppe "{group_name}" wurde angelegt.'
+        messagebox.showinfo("Import abgeschlossen", msg)
+
+    def _toggle_groups(self):
+        self.settings.groups_enabled = self._groups_var.get()
 
     def _import_vcard(self):
         path = filedialog.askopenfilename(

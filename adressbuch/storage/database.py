@@ -16,6 +16,7 @@ class Database:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(self.db_path))
         self._conn.row_factory = sqlite3.Row
+        self._conn.execute("PRAGMA foreign_keys = ON")
         self._create_tables()
 
     def _create_tables(self):
@@ -59,6 +60,17 @@ class Database:
                 ON contacts(family_name);
             CREATE INDEX IF NOT EXISTS idx_contacts_organization
                 ON contacts(organization);
+
+            CREATE TABLE IF NOT EXISTS groups (
+                id   INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            );
+
+            CREATE TABLE IF NOT EXISTS contact_groups (
+                contact_uid TEXT    NOT NULL REFERENCES contacts(uid) ON DELETE CASCADE,
+                group_id    INTEGER NOT NULL REFERENCES groups(id)    ON DELETE CASCADE,
+                PRIMARY KEY (contact_uid, group_id)
+            );
         """)
         self._conn.commit()
 
@@ -265,6 +277,44 @@ class Database:
 
     def count(self) -> int:
         return self._conn.execute("SELECT COUNT(*) FROM contacts").fetchone()[0]
+
+    # --- Gruppen ---
+
+    def create_group(self, name: str) -> int:
+        """Gruppe anlegen (oder bestehende zurückgeben)."""
+        self._conn.execute(
+            "INSERT OR IGNORE INTO groups (name) VALUES (?)", (name,)
+        )
+        self._conn.commit()
+        row = self._conn.execute(
+            "SELECT id FROM groups WHERE name=?", (name,)
+        ).fetchone()
+        return row["id"]
+
+    def get_all_groups(self) -> list[tuple[int, str]]:
+        """Alle Gruppen als Liste von (id, name)-Tupeln."""
+        rows = self._conn.execute(
+            "SELECT id, name FROM groups ORDER BY name"
+        ).fetchall()
+        return [(r["id"], r["name"]) for r in rows]
+
+    def add_contact_to_group(self, contact_uid: str, group_id: int):
+        """Kontakt einer Gruppe zuordnen (idempotent)."""
+        self._conn.execute(
+            "INSERT OR IGNORE INTO contact_groups (contact_uid, group_id) VALUES (?, ?)",
+            (contact_uid, group_id)
+        )
+        self._conn.commit()
+
+    def get_contacts_in_group(self, group_id: int) -> list[Contact]:
+        """Alle Kontakte einer Gruppe sortiert nach Nachname, Vorname."""
+        rows = self._conn.execute("""
+            SELECT c.* FROM contacts c
+            JOIN contact_groups cg ON cg.contact_uid = c.uid
+            WHERE cg.group_id = ?
+            ORDER BY c.family_name, c.given_name
+        """, (group_id,)).fetchall()
+        return [self._row_to_contact(r) for r in rows]
 
     def close(self):
         self._conn.close()
