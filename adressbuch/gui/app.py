@@ -74,13 +74,18 @@ class AdressbuchApp(tk.Tk):
         tb_menu.add_command(label="Markierte Kontakte exportieren...", command=self._export_selected)
         tb_menu.add_command(label="Alle Kontakte exportieren...", command=self._export_all)
 
-        extras_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Extras", menu=extras_menu)
+        self._extras_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Extras", menu=self._extras_menu)
         self._groups_var = tk.BooleanVar(value=self.settings.groups_enabled)
-        extras_menu.add_checkbutton(
+        self._extras_menu.add_checkbutton(
             label="Gruppen aktivieren",
             variable=self._groups_var,
             command=self._toggle_groups,
+        )
+        self._extras_menu.add_command(
+            label="Gruppenverwaltung...",
+            command=self._open_group_management,
+            state="normal" if self.settings.groups_enabled else "disabled",
         )
 
         file_menu.add_command(label="Als QR-Code anzeigen", command=self._show_qr, accelerator="Ctrl+Q")
@@ -450,6 +455,7 @@ class AdressbuchApp(tk.Tk):
     def _toggle_groups(self):
         enabled = self._groups_var.get()
         self.settings.groups_enabled = enabled
+        self._extras_menu.entryconfig("Gruppenverwaltung...", state="normal" if enabled else "disabled")
         if enabled:
             self._refresh_group_filter()
             self._group_frame.pack(fill="x", before=self._search_frame)
@@ -458,6 +464,20 @@ class AdressbuchApp(tk.Tk):
             self._group_combo_var.set("Alle Kontakte")
             self._group_frame.pack_forget()
             self._load_contacts(self._search_var.get().strip())
+
+    def _open_group_management(self):
+        from .group_management_dialog import GroupManagementDialog
+        GroupManagementDialog(self, self.db, on_change=self._on_groups_changed)
+
+    def _on_groups_changed(self):
+        """Wird nach Änderungen in der Gruppenverwaltung aufgerufen."""
+        self._refresh_group_filter()
+        if self._selected_group_id is not None:
+            still_exists = any(gid == self._selected_group_id for gid, _ in self._groups)
+            if not still_exists:
+                self._selected_group_id = None
+                self._group_combo_var.set("Alle Kontakte")
+        self._load_contacts(self._search_var.get().strip())
 
     def _import_vcard(self):
         path = filedialog.askopenfilename(

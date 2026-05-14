@@ -316,6 +316,24 @@ class Database:
         """, (group_id,)).fetchall()
         return [self._row_to_contact(r) for r in rows]
 
+    def rename_group(self, group_id: int, new_name: str):
+        """Gruppe umbenennen."""
+        self._conn.execute(
+            "UPDATE groups SET name=? WHERE id=?", (new_name, group_id)
+        )
+        self._conn.commit()
+
+    def delete_group(self, group_id: int):
+        """Gruppe löschen (Kontakte bleiben erhalten)."""
+        self._conn.execute("DELETE FROM groups WHERE id=?", (group_id,))
+        self._conn.commit()
+
+    def count_contacts_in_group(self, group_id: int) -> int:
+        """Anzahl Kontakte in einer Gruppe."""
+        return self._conn.execute(
+            "SELECT COUNT(*) FROM contact_groups WHERE group_id=?", (group_id,)
+        ).fetchone()[0]
+
     def remove_contact_from_group(self, contact_uid: str, group_id: int):
         """Kontakt aus einer Gruppe entfernen (idempotent)."""
         self._conn.execute(
