@@ -9,7 +9,46 @@ from ..models.contact import Contact, Address, Email, Phone, Url
 
 
 class ThunderbirdCsvParser:
-    """Parst Thunderbird-CSV-Exporte (Adressbuch → Exportieren als CSV)."""
+    """Parst Thunderbird-CSV-Exporte (Adressbuch → Exportieren als CSV).
+
+    Unterstützt englische und deutsche Thunderbird-Lokalisierung.
+    """
+
+    _DE_TO_EN: dict[str, str] = {
+        "Vorname":                  "First Name",
+        "Nachname":                 "Last Name",
+        "Anzeigename":              "Display Name",
+        "Spitzname":                "Nickname",
+        "Primäre E-Mail-Adresse":   "Primary Email",
+        "Sekundäre E-Mail-Adresse": "Secondary Email",
+        "Messenger-Name":           "Screen Name",
+        "Tel. dienstlich":          "Work Phone",
+        "Tel. privat":              "Home Phone",
+        "Fax-Nummer":               "Fax Number",
+        "Pager-Nummer":             "Pager Number",
+        "Mobil-Tel.-Nr.":           "Mobile Number",
+        "Privat: Adresse":          "Home Address",
+        "Privat: Adresse 2":        "Home Address 2",
+        "Privat: Ort":              "Home City",
+        "Privat: Bundesland":       "Home State",
+        "Privat: PLZ":              "Home ZipCode",
+        "Privat: Land":             "Home Country",
+        "Dienstlich: Adresse":      "Work Address",
+        "Dienstlich: Adresse 2":    "Work Address 2",
+        "Dienstlich: Ort":          "Work City",
+        "Dienstlich: Bundesland":   "Work State",
+        "Dienstlich: PLZ":          "Work ZipCode",
+        "Dienstlich: Land":         "Work Country",
+        "Arbeitstitel":             "Job Title",
+        "Abteilung":                "Department",
+        "Organisation":             "Organization",
+        "Webseite 1":               "Web Page 1",
+        "Webseite 2":               "Web Page 2",
+        "Geburtsjahr":              "Birth Year",
+        "Geburtsmonat":             "Birth Month",
+        "Geburtstag":               "Birth Day",
+        "Notizen":                  "Notes",
+    }
 
     _SIMPLE_FIELDS = {
         "First Name":   "given_name",
@@ -37,10 +76,14 @@ class ThunderbirdCsvParser:
         contacts = []
         for row in reader:
             try:
-                contacts.append(self._parse_row(row))
+                contacts.append(self._parse_row(self._normalize(row)))
             except Exception as e:
                 print(f"Warnung: CSV-Zeile übersprungen: {e}")
         return contacts
+
+    def _normalize(self, row: dict) -> dict:
+        """Übersetzt deutsche Spaltenköpfe auf englische Bezeichnungen."""
+        return {self._DE_TO_EN.get(k, k): v for k, v in row.items()}
 
     def _parse_row(self, row: dict) -> Contact:
         c = Contact()
@@ -49,9 +92,6 @@ class ThunderbirdCsvParser:
             val = row.get(csv_col, "").strip()
             if val:
                 setattr(c, attr, val)
-
-        if not c.display_name:
-            c.display_name = c.get_display_name()
 
         for col, pref in [("Primary Email", True), ("Secondary Email", False)]:
             addr = row.get(col, "").strip()
@@ -81,6 +121,9 @@ class ThunderbirdCsvParser:
         bday = self._parse_birthday(row)
         if bday:
             c.birthday = bday
+
+        if not c.display_name:
+            c.display_name = c.get_display_name()
 
         return c
 
