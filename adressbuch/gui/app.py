@@ -36,8 +36,11 @@ class AdressbuchApp(tk.Tk):
         db_path = Path(db_path)
         self.settings = Settings(db_path.parent / (db_path.stem + "_settings.json"))
         self._selected_uid: Optional[str] = None
+        self._selected_group_id: Optional[int] = None
 
         self._build_ui()
+        if self.settings.groups_enabled:
+            self._refresh_group_filter()
         self._load_contacts()
         self.after(3000, self._start_update_check)
 
@@ -110,6 +113,22 @@ class AdressbuchApp(tk.Tk):
         # --- Linke Seite: Kontaktliste ---
         left = ttk.Frame(paned, width=260)
         paned.add(left, weight=0)
+
+        # Gruppenfilter (nur sichtbar wenn Gruppen aktiviert)
+        self._group_frame = ttk.Frame(left)
+        ttk.Label(self._group_frame, text="Gruppe:").pack(side="left", padx=(4, 2))
+        self._group_combo_var = tk.StringVar(value="Alle Kontakte")
+        self._group_combo = ttk.Combobox(
+            self._group_frame,
+            textvariable=self._group_combo_var,
+            state="readonly",
+            values=["Alle Kontakte"],
+        )
+        self._group_combo.pack(side="left", fill="x", expand=True, padx=(0, 4), pady=4)
+        self._group_combo.bind("<<ComboboxSelected>>", self._on_group_selected)
+        self._groups: list[tuple[int, str]] = []
+        if self.settings.groups_enabled:
+            self._group_frame.pack(fill="x")
 
         # Suchfeld
         search_frame = ttk.Frame(left)
@@ -206,20 +225,42 @@ class AdressbuchApp(tk.Tk):
     # --- Kontaktverwaltung ---
 
     def _load_contacts(self, query: str = ""):
-        self._contacts: list[Contact] = (
-            self.db.search(query) if query else self.db.all()
-        )
+        if self._selected_group_id is not None:
+            base = self.db.get_contacts_in_group(self._selected_group_id)
+            if query:
+                q = query.lower()
+                self._contacts = [
+                    c for c in base
+                    if q in c.get_display_name().lower()
+                    or q in c.organization.lower()
+                    or any(q in e.address.lower() for e in c.emails)
+                ]
+            else:
+                self._contacts = base
+        else:
+            self._contacts = self.db.search(query) if query else self.db.all()
+
         self._listbox.delete(0, "end")
         for c in self._contacts:
             self._listbox.insert("end", c.get_display_name())
         count = self.db.count()
         self._status_var.set(
             f"{len(self._contacts)} von {count} Kontakten"
-            if query else f"{count} Kontakte"
+            if (query or self._selected_group_id is not None) else f"{count} Kontakte"
         )
 
     def _on_search(self):
         self._load_contacts(self._search_var.get().strip())
+
+    def _on_group_selected(self, _event=None):
+        idx = self._group_combo.current()
+        self._selected_group_id = None if idx == 0 else self._groups[idx - 1][0]
+        self._load_contacts(self._search_var.get().strip())
+
+    def _refresh_group_filter(self):
+        self._groups = self.db.get_all_groups()
+        values = ["Alle Kontakte"] + [name for _, name in self._groups]
+        self._group_combo.config(values=values)
 
     def _check_unsaved(self) -> bool:
         """Prüft auf ungespeicherte Änderungen. Gibt False zurück wenn der Nutzer abbricht."""
@@ -336,6 +377,8 @@ class AdressbuchApp(tk.Tk):
             if group_id is not None:
                 self.db.add_contact_to_group(c.uid, group_id)
 
+        if self.settings.groups_enabled:
+            self._refresh_group_filter()
         self._load_contacts(self._search_var.get().strip())
         msg = f"{len(contacts)} Kontakt(e) importiert."
         if group_name:
@@ -343,7 +386,16 @@ class AdressbuchApp(tk.Tk):
         messagebox.showinfo("Import abgeschlossen", msg)
 
     def _toggle_groups(self):
-        self.settings.groups_enabled = self._groups_var.get()
+        enabled = self._groups_var.get()
+        self.settings.groups_enabled = enabled
+        if enabled:
+            self._refresh_group_filter()
+            self._group_frame.pack(fill="x")
+        else:
+            self._selected_group_id = None
+            self._group_combo_var.set("Alle Kontakte")
+            self._group_frame.pack_forget()
+            self._load_contacts(self._search_var.get().strip())
 
     def _import_vcard(self):
         path = filedialog.askopenfilename(
