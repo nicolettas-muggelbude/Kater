@@ -316,5 +316,23 @@ class Database:
         """, (group_id,)).fetchall()
         return [self._row_to_contact(r) for r in rows]
 
+    def remove_contact_from_group(self, contact_uid: str, group_id: int):
+        """Kontakt aus einer Gruppe entfernen (idempotent)."""
+        self._conn.execute(
+            "DELETE FROM contact_groups WHERE contact_uid=? AND group_id=?",
+            (contact_uid, group_id)
+        )
+        self._conn.commit()
+
+    def get_groups_for_contact(self, contact_uid: str) -> list[tuple[int, str]]:
+        """Gruppen eines Kontakts als Liste von (id, name)-Tupeln."""
+        rows = self._conn.execute("""
+            SELECT g.id, g.name FROM groups g
+            JOIN contact_groups cg ON cg.group_id = g.id
+            WHERE cg.contact_uid = ?
+            ORDER BY g.name
+        """, (contact_uid,)).fetchall()
+        return [(r["id"], r["name"]) for r in rows]
+
     def close(self):
         self._conn.close()

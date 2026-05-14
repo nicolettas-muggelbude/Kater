@@ -124,8 +124,10 @@ class AdressbuchApp(tk.Tk):
             state="readonly",
             values=["Alle Kontakte"],
         )
-        self._group_combo.pack(side="left", fill="x", expand=True, padx=(0, 4), pady=4)
+        self._group_combo.pack(side="left", fill="x", expand=True, padx=(0, 2), pady=4)
         self._group_combo.bind("<<ComboboxSelected>>", self._on_group_selected)
+        ttk.Button(self._group_frame, text="+", width=2,
+                   command=self._new_group).pack(side="left", padx=(0, 4))
         self._groups: list[tuple[int, str]] = []
         if self.settings.groups_enabled:
             self._group_frame.pack(fill="x")
@@ -159,6 +161,7 @@ class AdressbuchApp(tk.Tk):
         scrollbar.pack(side="right", fill="y")
         self._listbox.bind("<<ListboxSelect>>", self._on_select)
         self._listbox.bind("<Double-Button-1>", self._on_select)
+        self._listbox.bind("<Button-3>", self._show_context_menu)
 
         # Statusleiste
         self._status_var = tk.StringVar()
@@ -346,6 +349,64 @@ class AdressbuchApp(tk.Tk):
         self._load_contacts(self._search_var.get().strip())
 
     # --- vCard Import/Export ---
+
+    def _new_group(self):
+        from tkinter.simpledialog import askstring
+        name = askstring("Neue Gruppe", "Gruppenname:", parent=self)
+        if not name or not name.strip():
+            return
+        self.db.create_group(name.strip())
+        self._refresh_group_filter()
+
+    def _show_context_menu(self, event):
+        idx = self._listbox.nearest(event.y)
+        if idx < 0 or idx >= len(self._contacts):
+            return
+        if idx not in self._listbox.curselection():
+            self._listbox.selection_clear(0, "end")
+            self._listbox.selection_set(idx)
+            self._on_select()
+
+        selection = self._listbox.curselection()
+        selected_contacts = [self._contacts[i] for i in selection if i < len(self._contacts)]
+        if not selected_contacts:
+            return
+
+        menu = tk.Menu(self, tearoff=0)
+
+        if self.settings.groups_enabled and self._groups:
+            add_menu = tk.Menu(menu, tearoff=0)
+            for gid, gname in self._groups:
+                add_menu.add_command(
+                    label=gname,
+                    command=lambda g=gid: self._add_to_group(selected_contacts, g)
+                )
+            menu.add_cascade(label="Zu Gruppe hinzufügen", menu=add_menu)
+
+            remove_menu = tk.Menu(menu, tearoff=0)
+            for gid, gname in self._groups:
+                remove_menu.add_command(
+                    label=gname,
+                    command=lambda g=gid: self._remove_from_group(selected_contacts, g)
+                )
+            menu.add_cascade(label="Aus Gruppe entfernen", menu=remove_menu)
+            menu.add_separator()
+
+        menu.add_command(label="Löschen", command=self._delete_contact)
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def _add_to_group(self, contacts: list[Contact], group_id: int):
+        for c in contacts:
+            self.db.add_contact_to_group(c.uid, group_id)
+        gname = next(n for gid, n in self._groups if gid == group_id)
+        messagebox.showinfo("Gruppe", f"{len(contacts)} Kontakt(e) zu \"{gname}\" hinzugefügt.")
+
+    def _remove_from_group(self, contacts: list[Contact], group_id: int):
+        for c in contacts:
+            self.db.remove_contact_from_group(c.uid, group_id)
+        self._load_contacts(self._search_var.get().strip())
+        gname = next(n for gid, n in self._groups if gid == group_id)
+        messagebox.showinfo("Gruppe", f"{len(contacts)} Kontakt(e) aus \"{gname}\" entfernt.")
 
     def _import_csv(self):
         path = filedialog.askopenfilename(
