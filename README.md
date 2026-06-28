@@ -14,7 +14,7 @@
 
 ## Features
 
-- **Kontaktverwaltung** – Erstellen, bearbeiten und löschen mit allen vCard 4.0-Feldern
+- **Kontaktverwaltung** – Erstellen, bearbeiten und löschen mit allen vCard 4.0-Feldern 
 - **Thunderbird / vCard** – Import und Export kompatibel mit vCard 3.0 und 4.0; einzelne, markierte oder alle Kontakte
 - **Mehrfachauswahl** – Strg+Klick oder Umschalt+Klick für Gruppenexport
 - **QR-Code** – Kontakt als QR-Code anzeigen und teilen
