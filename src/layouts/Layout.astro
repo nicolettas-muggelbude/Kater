@@ -20,12 +20,17 @@ const canonicalUrl = Astro.url.href
 <!doctype html>
 <html lang="de">
   <head>
-    <!-- Anti-Flash: Theme vor erstem Render setzen (sessionStorage = Tab-Sitzung, kein Persist über Browser-Neustart) -->
+    <!-- Anti-Flash: Theme vor erstem Render setzen. sessionStorage merkt den manuellen
+         Toggle über Seitenwechsel hinweg, aber ein Reload derselben Seite verwirft ihn
+         wieder und folgt der aktuellen Browser-Einstellung (Navigation Timing API). -->
     <script is:inline>
       ;(function(){
-        var t=sessionStorage.getItem('theme');
-        var dark=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+        var navEntries = performance.getEntriesByType && performance.getEntriesByType('navigation');
+        var isReload = navEntries && navEntries.length && navEntries[0].type === 'reload';
+        if (isReload) { try { sessionStorage.removeItem('theme'); } catch (e) {} }
+        var t = isReload ? null : sessionStorage.getItem('theme');
+        var dark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
       })()
     </script>
     <meta charset="UTF-8" />
