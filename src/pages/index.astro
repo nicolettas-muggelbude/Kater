@@ -23,15 +23,15 @@ const downloadInstallSh = `https://github.com/${REPO}/releases/latest/download/i
 const releasesUrl = `https://github.com/${REPO}/releases/latest`
 
 const features = [
-  { icon: '👤', title: 'Kontaktverwaltung', text: 'Erstellen, bearbeiten und löschen mit allen vCard 4.0-Feldern.' },
-  { icon: '📇', title: 'Thunderbird / vCard', text: 'Import und Export kompatibel mit vCard 3.0 und 4.0 – einzeln, markiert oder alle Kontakte.' },
-  { icon: '📡', title: 'Fritzbox-Export', text: 'Telefonbuch als XML, direkt über die Fritzbox-Weboberfläche importierbar.' },
-  { icon: '☎️', title: 'Speedport-Export', text: 'Telefonbuch als CSV im Format der Telekom Speedport-Router.' },
-  { icon: '🖱️', title: 'Mehrfachauswahl', text: 'Strg+Klick oder Umschalt+Klick für Gruppenexport.' },
-  { icon: '🔳', title: 'QR-Code', text: 'Kontakt als QR-Code anzeigen und teilen.' },
-  { icon: '🔍', title: 'Volltextsuche', text: 'Sofortige Filterung der Kontaktliste.' },
-  { icon: '🗄️', title: 'Lokale Datenbank', text: 'SQLite, keine Cloud, keine Konten.' },
-  { icon: '🔄', title: 'Auto-Updater', text: 'Prüft beim Start auf neue Versionen via GitHub Releases.' },
+  { icon: 'contacts', title: 'Kontaktverwaltung', text: 'Erstellen, bearbeiten und löschen mit allen vCard 4.0-Feldern.' },
+  { icon: 'import_contacts', title: 'Thunderbird / vCard', text: 'Import und Export kompatibel mit vCard 3.0 und 4.0 – einzeln, markiert oder alle Kontakte.' },
+  { icon: 'router', title: 'Fritzbox-Export', text: 'Telefonbuch als XML, direkt über die Fritzbox-Weboberfläche importierbar.' },
+  { icon: 'dialpad', title: 'Speedport-Export', text: 'Telefonbuch als CSV im Format der Telekom Speedport-Router.' },
+  { icon: 'checklist', title: 'Mehrfachauswahl', text: 'Strg+Klick oder Umschalt+Klick für Gruppenexport.' },
+  { icon: 'qr_code', title: 'QR-Code', text: 'Kontakt als QR-Code anzeigen und teilen.' },
+  { icon: 'search', title: 'Volltextsuche', text: 'Sofortige Filterung der Kontaktliste.' },
+  { icon: 'database', title: 'Lokale Datenbank', text: 'SQLite, keine Cloud, keine Konten.' },
+  { icon: 'sync', title: 'Auto-Updater', text: 'Prüft beim Start auf neue Versionen via GitHub Releases.' },
 ]
 ---
 
@@ -77,7 +77,7 @@ const features = [
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
       {features.map(f => (
         <div class="p-5 rounded-xl border border-slate-100 bg-slate-50">
-          <div class="text-2xl mb-2">{f.icon}</div>
+          <span class="material-symbols-outlined text-[#4A90D9] mb-2" style="font-size:2rem">{f.icon}</span>
           <h3 class="font-semibold text-slate-900 mb-1">{f.title}</h3>
           <p class="text-sm text-slate-600">{f.text}</p>
         </div>
