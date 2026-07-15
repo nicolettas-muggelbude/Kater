@@ -1,0 +1,87 @@
+---
+import Layout from '../layouts/Layout.astro'
+
+const jsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Kater',
+  description: 'Linux-Adressbuch mit vollständiger vCard 4.0-Unterstützung. Lokal, offline, Open Source.',
+  url: 'https://kater-adressen.app',
+  applicationCategory: 'Utility',
+  operatingSystem: 'Linux',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+  license: 'https://www.gnu.org/licenses/gpl-3.0.html',
+  downloadUrl: 'https://github.com/nicolettas-muggelbude/Kater/releases/latest',
+  inLanguage: 'de',
+  author: { '@type': 'Organization', name: 'Muggelbude', url: 'https://muggelbude.it' },
+  isAccessibleForFree: true,
+})
+
+const REPO = 'nicolettas-muggelbude/Kater'
+const downloadAppImage = `https://github.com/${REPO}/releases/latest/download/Kater-x86_64.AppImage`
+const downloadInstallSh = `https://github.com/${REPO}/releases/latest/download/install.sh`
+const releasesUrl = `https://github.com/${REPO}/releases/latest`
+
+const features = [
+  { icon: '👤', title: 'Kontaktverwaltung', text: 'Erstellen, bearbeiten und löschen mit allen vCard 4.0-Feldern.' },
+  { icon: '📇', title: 'Thunderbird / vCard', text: 'Import und Export kompatibel mit vCard 3.0 und 4.0 – einzeln, markiert oder alle Kontakte.' },
+  { icon: '📡', title: 'Fritzbox-Export', text: 'Telefonbuch als XML, direkt über die Fritzbox-Weboberfläche importierbar.' },
+  { icon: '☎️', title: 'Speedport-Export', text: 'Telefonbuch als CSV im Format der Telekom Speedport-Router.' },
+  { icon: '🖱️', title: 'Mehrfachauswahl', text: 'Strg+Klick oder Umschalt+Klick für Gruppenexport.' },
+  { icon: '🔳', title: 'QR-Code', text: 'Kontakt als QR-Code anzeigen und teilen.' },
+  { icon: '🔍', title: 'Volltextsuche', text: 'Sofortige Filterung der Kontaktliste.' },
+  { icon: '🗄️', title: 'Lokale Datenbank', text: 'SQLite, keine Cloud, keine Konten.' },
+  { icon: '🔄', title: 'Auto-Updater', text: 'Prüft beim Start auf neue Versionen via GitHub Releases.' },
+]
+---
+
+<Layout description="Linux-Adressbuch mit vollständiger vCard 4.0-Unterstützung. Lokal, offline, Open Source.">
+  <script slot="head" type="application/ld+json" set:html={jsonLd} />
+
+  <!-- Hero -->
+  <section class="max-w-5xl mx-auto px-6 pt-20 pb-16 text-center">
+    <div class="flex flex-col items-center gap-4 mb-4">
+      <img src="/kater-logo.svg" alt="Kater Logo" class="w-24 h-24 md:w-28 md:h-28 drop-shadow-md" />
+      <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight leading-none text-slate-900">
+        Kater
+      </h1>
+    </div>
+    <p class="text-xl md:text-2xl font-semibold text-slate-600 mb-8">
+      Linux-Adressbuch mit vollständiger vCard 4.0-Unterstützung
+    </p>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
+      <a href={downloadAppImage}
+         class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#4A90D9] text-white font-semibold hover:bg-[#3d7bc0] transition-colors">
+        ⬇ AppImage herunterladen
+      </a>
+      <a href={downloadInstallSh}
+         class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+        install.sh
+      </a>
+    </div>
+    <p class="text-sm text-slate-400">
+      <img src="https://img.shields.io/github/v/release/nicolettas-muggelbude/Kater" alt="Neueste Version" class="inline-block align-middle" />
+      · <a href={releasesUrl} target="_blank" rel="noopener" class="hover:text-[#4A90D9] transition-colors">Alle Releases ↗</a>
+    </p>
+  </section>
+
+  <!-- Screenshot -->
+  <section class="max-w-4xl mx-auto px-6 pb-20">
+    <img src="/kater_image.jpg" alt="Kater Adressbuch Screenshot" class="w-full rounded-2xl shadow-lg border border-slate-100" />
+  </section>
+
+  <!-- Features -->
+  <section class="max-w-5xl mx-auto px-6 pb-24">
+    <h2 class="text-3xl font-extrabold text-slate-900 text-center mb-10">Features</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      {features.map(f => (
+        <div class="p-5 rounded-xl border border-slate-100 bg-slate-50">
+          <div class="text-2xl mb-2">{f.icon}</div>
+          <h3 class="font-semibold text-slate-900 mb-1">{f.title}</h3>
+          <p class="text-sm text-slate-600">{f.text}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+</Layout>

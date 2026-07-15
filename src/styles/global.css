@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #4A90D9;
+  --color-primary-dark: #2C5F8A;
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { @apply antialiased text-slate-800; }
+  ::selection { background-color: #4A90D9; color: #ffffff; }
+}
+
+/* ─── Dark Mode (Auto via OS + manuell via Toggle) ─────────────────────────── */
+/* Außerhalb von @layer → überschreibt Tailwind-Layered-Utilities               */
+/* Gemeinsame Dark-Styles als Nesting – 2× definiert:                           */
+/*   1) OS-Präferenz (außer manuell auf Light gesetzt)                          */
+/*   2) Manuell auf Dark gesetzt via data-theme="dark"                          */
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    color-scheme: dark;
+    & body { background-color: #0f172a; color: #e2e8f0; }
+    & .bg-white     { background-color: #1e293b; }
+    & .bg-white\/90 { background-color: rgba(15, 23, 42, 0.9); }
+    & .bg-slate-50  { background-color: #1e293b; }
+    & .bg-slate-100 { background-color: #293548; }
+    & .bg-slate-900 { background-color: #020617; }
+    & .text-slate-900 { color: #f1f5f9; }
+    & .text-slate-800 { color: #e2e8f0; }
+    & .text-slate-700 { color: #cbd5e1; }
+    & .text-slate-600 { color: #94a3b8; }
+    & .text-slate-500 { color: #94a3b8; }
+    & .text-slate-400 { color: #64748b; }
+    & .text-white     { color: #f8fafc; }
+    & .border-slate-100 { border-color: #293548; }
+    & .border-slate-200 { border-color: #334155; }
+    & .border-slate-800 { border-color: #1e293b; }
+    & .text-\[\#4A90D9\] { color: #7ab2e8; }
+    & ::selection { background-color: #4A90D9; color: #ffffff; }
+  }
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  & body { background-color: #0f172a; color: #e2e8f0; }
+  & .bg-white     { background-color: #1e293b; }
+  & .bg-white\/90 { background-color: rgba(15, 23, 42, 0.9); }
+  & .bg-slate-50  { background-color: #1e293b; }
+  & .bg-slate-100 { background-color: #293548; }
+  & .bg-slate-900 { background-color: #020617; }
+  & .text-slate-900 { color: #f1f5f9; }
+  & .text-slate-800 { color: #e2e8f0; }
+  & .text-slate-700 { color: #cbd5e1; }
+  & .text-slate-600 { color: #94a3b8; }
+  & .text-slate-500 { color: #94a3b8; }
+  & .text-slate-400 { color: #64748b; }
+  & .text-white     { color: #f8fafc; }
+  & .border-slate-100 { border-color: #293548; }
+  & .border-slate-200 { border-color: #334155; }
+  & .border-slate-800 { border-color: #1e293b; }
+  & .text-\[\#4A90D9\] { color: #7ab2e8; }
+  & ::selection { background-color: #4A90D9; color: #ffffff; }
+}

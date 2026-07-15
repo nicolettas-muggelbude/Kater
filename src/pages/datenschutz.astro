@@ -1,0 +1,54 @@
+---
+import Layout from '../layouts/Layout.astro'
+---
+
+<Layout title="Datenschutz" description="Datenschutzerklärung – PC-Wittfoot UG, Kater-Website">
+  <div class="max-w-2xl mx-auto px-6 py-16">
+
+    <h1 class="text-3xl font-extrabold text-slate-900 mb-2">Datenschutzerklärung</h1>
+    <p class="text-sm text-slate-400 mb-10">Stand: Juli 2026</p>
+
+    <div class="space-y-8 text-sm text-slate-600 leading-relaxed">
+
+      <section>
+        <h2 class="font-semibold text-slate-800 mb-2">1. Verantwortliche Stelle</h2>
+        <p>Verantwortlich für den Betrieb dieser Website ist:</p>
+        <p class="mt-2 font-medium text-slate-700">PC-Wittfoot UG</p>
+        <p>Melkbrink 61 · 26121 Oldenburg<br/>
+          <a href="mailto:info@pc-wittfoot.de" class="text-[#4A90D9] hover:underline">info@pc-wittfoot.de</a>
+        </p>
+      </section>
+
+      <section class="border-t border-slate-100 pt-6">
+        <h2 class="font-semibold text-slate-800 mb-2">2. Nutzung dieser Website (GitHub Pages)</h2>
+        <ul class="space-y-1 list-disc list-inside text-slate-500">
+          <li>Diese Seite wird über <strong class="font-medium text-slate-600">GitHub Pages</strong> bereitgestellt. GitHub erfasst IP-Adressen und Nutzungsdaten.</li>
+          <li><span class="text-slate-400">Zweck:</span> Technische Bereitstellung der Seite.</li>
+          <li><span class="text-slate-400">Rechtsgrundlage:</span> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse).</li>
+          <li><span class="text-slate-400">Weitergabe:</span> GitHub (Microsoft) verarbeitet Daten in den USA. <a href="https://docs.github.com/de/site-policy/privacy-policies/github-privacy-statement" target="_blank" rel="noopener" class="text-[#4A90D9] hover:underline">GitHub Privacy Statement ↗</a></li>
+        </ul>
+      </section>
+
+      <section class="border-t border-slate-100 pt-6">
+        <h2 class="font-semibold text-slate-800 mb-2">3. Datenverarbeitung durch die Software</h2>
+        <p>
+          <a href="https://github.com/nicolettas-muggelbude/Kater" target="_blank" rel="noopener" class="text-[#4A90D9] hover:underline">Kater</a> ist eine lokale Desktop-Anwendung – Kontaktdaten bleiben ausschließlich auf deinem Gerät (SQLite-Datenbank, keine Cloud, keine Konten). Beim Start prüft die App automatisch auf neue Versionen über die <span class="font-medium text-slate-700">GitHub Releases API</span> (<code class="bg-slate-100 text-slate-700 rounded px-1 py-0.5 text-xs">api.github.com</code>). Dabei werden keine personenbezogenen Daten übertragen – lediglich die technisch notwendige IP-Adresse und ein User-Agent-String gegenüber GitHub. Ein Tracking oder eine Weitergabe von Nutzungsdaten an die PC-Wittfoot UG findet nicht statt.
+        </p>
+      </section>
+
+      <section class="border-t border-slate-100 pt-6">
+        <h2 class="font-semibold text-slate-800 mb-2">4. Ihre Rechte</h2>
+        <p>Sie haben das Recht auf:</p>
+        <ul class="mt-2 space-y-1 list-disc list-inside text-slate-500">
+          <li>Auskunft über gespeicherte Daten (Art. 15 DSGVO)</li>
+          <li>Berichtigung oder Löschung (Art. 16, 17 DSGVO)</li>
+          <li>Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
+        </ul>
+        <p class="mt-3">
+          Kontakt: <a href="mailto:info@pc-wittfoot.de" class="text-[#4A90D9] hover:underline">info@pc-wittfoot.de</a>
+        </p>
+      </section>
+
+    </div>
+  </div>
+</Layout>
