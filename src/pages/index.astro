@@ -20,7 +20,7 @@ const jsonLd = JSON.stringify({
 const REPO = 'nicolettas-muggelbude/Kater'
 const downloadAppImage = `https://github.com/${REPO}/releases/latest/download/Kater-x86_64.AppImage`
 const downloadInstallSh = `https://github.com/${REPO}/releases/latest/download/install.sh`
-const releasesUrl = `https://github.com/${REPO}/releases/latest`
+const releasesUrl = 'https://muggelbude.it/projects/kater'
 
 const features = [
   { icon: 'contacts', title: 'Kontaktverwaltung', text: 'Erstellen, bearbeiten und löschen mit allen vCard 4.0-Feldern.' },
@@ -64,6 +64,20 @@ const features = [
       <img src="https://img.shields.io/github/v/release/nicolettas-muggelbude/Kater" alt="Neueste Version" class="inline-block align-middle" />
       · <a href={releasesUrl} target="_blank" rel="noopener" class="hover:text-[#4A90D9] transition-colors">Alle Releases ↗</a>
     </p>
+  </section>
+
+  <!-- Installation -->
+  <section class="max-w-2xl mx-auto px-6 pb-20">
+    <h2 class="text-2xl font-extrabold text-slate-900 text-center mb-6">Installation</h2>
+    <div class="rounded-xl border border-slate-100 bg-slate-50 p-6 text-sm text-slate-600 leading-relaxed">
+      <p class="font-semibold text-slate-800 mb-1">Desktop-Integration (empfohlen)</p>
+      <p class="mb-3">AppImage und <code class="bg-slate-100 text-slate-700 rounded px-1 py-0.5 text-xs">install.sh</code> herunterladen, dann:</p>
+      <pre class="bg-slate-900 text-slate-100 rounded-xl p-4 mb-3 overflow-x-auto text-xs"><code>chmod +x install.sh
+./install.sh Kater-x86_64.AppImage</code></pre>
+      <p class="mb-4">Das Script kopiert das AppImage nach <code class="bg-slate-100 text-slate-700 rounded px-1 py-0.5 text-xs">~/.local/bin/</code>, prüft Abhängigkeiten und erstellt einen Starter für GNOME, KDE, XFCE und MATE.</p>
+      <p class="font-semibold text-slate-800 mb-1">Startet Kater nicht?</p>
+      <pre class="bg-slate-900 text-slate-100 rounded-xl p-4 overflow-x-auto text-xs"><code>./install.sh --repair</code></pre>
+    </div>
   </section>
 
   <!-- Screenshot -->
