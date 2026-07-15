@@ -12,10 +12,13 @@ Linux-Adressbuch-App mit vollständiger vCard-Unterstützung.
 ## Architektur
 ```
 adressbuch/
-├── models/contact.py      # Kontaktmodell (alle vCard-Felder)
-├── storage/database.py    # SQLite-Persistenz
-├── storage/vcard.py       # vCard 4.0 Import/Export
-└── gui/                   # GUI-Schicht (tkinter → GTK4)
+├── models/contact.py          # Kontaktmodell (alle vCard-Felder)
+├── storage/database.py        # SQLite-Persistenz
+├── storage/vcard.py           # vCard 4.0 Import/Export
+├── storage/csv_import.py      # Thunderbird-CSV-Import
+├── storage/fritzbox_export.py # Fritzbox-Telefonbuch-Export (XML)
+├── storage/speedport_export.py # Speedport-Telefonbuch-Export (CSV)
+└── gui/                       # GUI-Schicht (tkinter → GTK4)
 ```
 
 ## Wichtige Designentscheidungen
@@ -29,11 +32,13 @@ adressbuch/
 - [x] SQLite-Datenbank
 - [x] vCard Import/Export
 - [x] Tkinter-GUI (Basis)
+- [x] Thunderbird-CSV-Import
+- [x] Gruppenverwaltung / Kategorien
+- [x] Suche und Filter
+- [x] Fritzbox-/Speedport-Telefonbuch-Export
 - [ ] Foto-Unterstützung
-- [ ] Thunderbird-Schnittstelle (CardDAV oder direkter Import)
+- [ ] CardDAV-Schnittstelle
 - [ ] GTK4-Migration
-- [ ] Gruppenverwaltung / Kategorien
-- [ ] Suche und Filter
 
 ## Konventionen
 - Ausgaben und Kommentare auf Deutsch

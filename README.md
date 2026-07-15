@@ -16,6 +16,8 @@
 
 - **Kontaktverwaltung** – Erstellen, bearbeiten und löschen mit allen vCard 4.0-Feldern 
 - **Thunderbird / vCard** – Import und Export kompatibel mit vCard 3.0 und 4.0; einzelne, markierte oder alle Kontakte
+- **Fritzbox-Export** – Telefonbuch als XML, direkt über die Fritzbox-Weboberfläche importierbar
+- **Speedport-Export** – Telefonbuch als CSV im Format der Telekom Speedport-Router
 - **Mehrfachauswahl** – Strg+Klick oder Umschalt+Klick für Gruppenexport
 - **QR-Code** – Kontakt als QR-Code anzeigen und teilen
 - **Volltextsuche** – sofortige Filterung der Kontaktliste

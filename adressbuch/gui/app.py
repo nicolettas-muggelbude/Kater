@@ -12,6 +12,8 @@ from ..storage.database import Database
 from ..storage.settings import Settings
 from ..storage.vcard import VCardParser, VCardExporter
 from ..storage.csv_import import ThunderbirdCsvParser
+from ..storage.fritzbox_export import FritzboxExporter
+from ..storage.speedport_export import SpeedportExporter
 from .utils import resolve_asset
 from .contact_form import ContactForm
 from .csv_import_dialog import CsvImportDialog
@@ -73,6 +75,28 @@ class AdressbuchApp(tk.Tk):
         tb_menu.add_command(label="Aktuellen Kontakt exportieren...", command=self._export_vcard)
         tb_menu.add_command(label="Markierte Kontakte exportieren...", command=self._export_selected)
         tb_menu.add_command(label="Alle Kontakte exportieren...", command=self._export_all)
+
+        fritzbox_menu = tk.Menu(file_menu, tearoff=0)
+        file_menu.add_cascade(label="Fritzbox", menu=fritzbox_menu)
+        fritzbox_menu.add_command(
+            label="Markierte Kontakte exportieren...",
+            command=self._export_fritzbox_selected,
+        )
+        fritzbox_menu.add_command(
+            label="Alle Kontakte exportieren...",
+            command=self._export_fritzbox_all,
+        )
+
+        speedport_menu = tk.Menu(file_menu, tearoff=0)
+        file_menu.add_cascade(label="Speedport", menu=speedport_menu)
+        speedport_menu.add_command(
+            label="Markierte Kontakte exportieren...",
+            command=self._export_speedport_selected,
+        )
+        speedport_menu.add_command(
+            label="Alle Kontakte exportieren...",
+            command=self._export_speedport_all,
+        )
 
         self._extras_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Extras", menu=self._extras_menu)
@@ -579,6 +603,88 @@ class AdressbuchApp(tk.Tk):
                 "Export",
                 f"{len(contacts)} Kontakt(e) nach '{path}' exportiert."
             )
+        except Exception as e:
+            messagebox.showerror("Exportfehler", str(e))
+
+    def _export_fritzbox_selected(self):
+        selection = self._listbox.curselection()
+        if not selection:
+            messagebox.showwarning(
+                "Keine Auswahl",
+                "Bitte zuerst Kontakte in der Liste markieren.\n"
+                "(Strg+Klick für mehrere, Umschalt+Klick für Bereich)"
+            )
+            return
+        contacts = [self._contacts[i] for i in selection if i < len(self._contacts)]
+        if not contacts:
+            return
+        self._export_fritzbox(contacts, "fritzbox_telefonbuch.xml")
+
+    def _export_fritzbox_all(self):
+        contacts = self.db.all()
+        if not contacts:
+            messagebox.showinfo("Export", "Keine Kontakte vorhanden.")
+            return
+        self._export_fritzbox(contacts, "fritzbox_telefonbuch.xml")
+
+    def _export_fritzbox(self, contacts: list[Contact], default_name: str):
+        path = filedialog.asksaveasfilename(
+            title="Fritzbox-Telefonbuch exportieren",
+            defaultextension=".xml",
+            initialfile=default_name,
+            filetypes=[("XML Dateien", "*.xml"), ("Alle Dateien", "*.*")]
+        )
+        if not path:
+            return
+        exporter = FritzboxExporter()
+        try:
+            exported = exporter.export_contacts(contacts, path)
+            skipped = len(contacts) - exported
+            msg = f"{exported} Kontakt(e) nach '{path}' exportiert."
+            if skipped:
+                msg += f"\n{skipped} Kontakt(e) ohne Telefonnummer übersprungen."
+            messagebox.showinfo("Export", msg)
+        except Exception as e:
+            messagebox.showerror("Exportfehler", str(e))
+
+    def _export_speedport_selected(self):
+        selection = self._listbox.curselection()
+        if not selection:
+            messagebox.showwarning(
+                "Keine Auswahl",
+                "Bitte zuerst Kontakte in der Liste markieren.\n"
+                "(Strg+Klick für mehrere, Umschalt+Klick für Bereich)"
+            )
+            return
+        contacts = [self._contacts[i] for i in selection if i < len(self._contacts)]
+        if not contacts:
+            return
+        self._export_speedport(contacts, "speedport_telefonbuch.txt")
+
+    def _export_speedport_all(self):
+        contacts = self.db.all()
+        if not contacts:
+            messagebox.showinfo("Export", "Keine Kontakte vorhanden.")
+            return
+        self._export_speedport(contacts, "speedport_telefonbuch.txt")
+
+    def _export_speedport(self, contacts: list[Contact], default_name: str):
+        path = filedialog.asksaveasfilename(
+            title="Speedport-Telefonbuch exportieren",
+            defaultextension=".txt",
+            initialfile=default_name,
+            filetypes=[("Text Dateien", "*.txt"), ("CSV Dateien", "*.csv"), ("Alle Dateien", "*.*")]
+        )
+        if not path:
+            return
+        exporter = SpeedportExporter()
+        try:
+            exported = exporter.export_contacts(contacts, path)
+            skipped = len(contacts) - exported
+            msg = f"{exported} Kontakt(e) nach '{path}' exportiert."
+            if skipped:
+                msg += f"\n{skipped} Kontakt(e) ohne Daten übersprungen."
+            messagebox.showinfo("Export", msg)
         except Exception as e:
             messagebox.showerror("Exportfehler", str(e))
 
