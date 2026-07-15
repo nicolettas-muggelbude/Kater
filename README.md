@@ -8,6 +8,8 @@
   [![Release](https://img.shields.io/github/v/release/nicolettas-muggelbude/Kater)](https://github.com/nicolettas-muggelbude/Kater/releases/latest)
   [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
   [![Platform](https://img.shields.io/badge/platform-Linux-lightgrey)](https://github.com/nicolettas-muggelbude/Kater/releases/latest)
+
+  [![Download Kater](https://a.fsdn.com/con/app/sf-download-button)](https://sourceforge.net/projects/kater/files/latest/download)
 </div>
 
 ---
