@@ -40,6 +40,12 @@ chmod +x Kater-*.AppImage
 ./Kater-*.AppImage
 ```
 
+### Arch Linux (AUR)
+
+```bash
+yay -S kater-bin
+```
+
 ### Aus dem Quellcode
 
 Voraussetzungen: Python 3.10+, tkinter
