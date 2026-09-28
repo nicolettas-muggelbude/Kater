@@ -17,6 +17,8 @@ from ..storage.speedport_export import SpeedportExporter
 from .utils import resolve_asset
 from .contact_form import ContactForm
 from .csv_import_dialog import CsvImportDialog
+from ..storage.csv_export import CsvExporter
+from .csv_export_dialog import CsvExportDialog
 from .qr_dialog import QRDialog
 
 
@@ -67,17 +69,42 @@ class AdressbuchApp(tk.Tk):
         file_menu.add_command(label="Neuer Kontakt", command=self._new_contact, accelerator="Ctrl+N")
         file_menu.add_separator()
 
-        tb_menu = tk.Menu(file_menu, tearoff=0)
-        file_menu.add_cascade(label="Thunderbird / vCard", menu=tb_menu)
-        tb_menu.add_command(label="vCard importieren...", command=self._import_vcard)
-        tb_menu.add_command(label="CSV importieren (Thunderbird)...", command=self._import_csv)
-        tb_menu.add_separator()
-        tb_menu.add_command(label="Aktuellen Kontakt exportieren...", command=self._export_vcard)
-        tb_menu.add_command(label="Markierte Kontakte exportieren...", command=self._export_selected)
-        tb_menu.add_command(label="Alle Kontakte exportieren...", command=self._export_all)
+        import_menu = tk.Menu(file_menu, tearoff=0)
+        file_menu.add_cascade(label="Import", menu=import_menu)
+        import_menu.add_command(label="vCard importieren...", command=self._import_vcard)
+        import_menu.add_command(label="CSV importieren (Thunderbird)...", command=self._import_csv)
 
-        fritzbox_menu = tk.Menu(file_menu, tearoff=0)
-        file_menu.add_cascade(label="Fritzbox", menu=fritzbox_menu)
+        file_menu.add_separator()
+        file_menu.add_command(label="Als QR-Code anzeigen", command=self._show_qr, accelerator="Ctrl+Q")
+        file_menu.add_separator()
+        file_menu.add_command(label="Beenden", command=self._on_close)
+
+        export_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Export", menu=export_menu)
+
+        vcard_menu = tk.Menu(export_menu, tearoff=0)
+        export_menu.add_cascade(label="vCard", menu=vcard_menu)
+        vcard_menu.add_command(label="Aktuellen Kontakt exportieren...", command=self._export_vcard)
+        vcard_menu.add_command(label="Markierte Kontakte exportieren...", command=self._export_selected)
+        vcard_menu.add_command(label="Alle Kontakte exportieren...", command=self._export_all)
+
+        csv_export_menu = tk.Menu(export_menu, tearoff=0)
+        export_menu.add_cascade(label="CSV (konfigurierbar)", menu=csv_export_menu)
+        csv_export_menu.add_command(
+            label="Aktuellen Kontakt exportieren...",
+            command=self._export_csv_current,
+        )
+        csv_export_menu.add_command(
+            label="Markierte Kontakte exportieren...",
+            command=self._export_csv_selected,
+        )
+        csv_export_menu.add_command(
+            label="Alle Kontakte exportieren...",
+            command=self._export_csv_all,
+        )
+
+        fritzbox_menu = tk.Menu(export_menu, tearoff=0)
+        export_menu.add_cascade(label="Fritzbox", menu=fritzbox_menu)
         fritzbox_menu.add_command(
             label="Markierte Kontakte exportieren...",
             command=self._export_fritzbox_selected,
@@ -87,8 +114,8 @@ class AdressbuchApp(tk.Tk):
             command=self._export_fritzbox_all,
         )
 
-        speedport_menu = tk.Menu(file_menu, tearoff=0)
-        file_menu.add_cascade(label="Speedport", menu=speedport_menu)
+        speedport_menu = tk.Menu(export_menu, tearoff=0)
+        export_menu.add_cascade(label="Speedport", menu=speedport_menu)
         speedport_menu.add_command(
             label="Markierte Kontakte exportieren...",
             command=self._export_speedport_selected,
@@ -111,10 +138,10 @@ class AdressbuchApp(tk.Tk):
             command=self._open_group_management,
             state="normal" if self.settings.groups_enabled else "disabled",
         )
-
-        file_menu.add_command(label="Als QR-Code anzeigen", command=self._show_qr, accelerator="Ctrl+Q")
-        file_menu.add_separator()
-        file_menu.add_command(label="Beenden", command=self._on_close)
+        self._extras_menu.add_command(
+            label="Dubletten finden...",
+            command=self._open_duplicate_manager,
+        )
 
         edit_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Bearbeiten", menu=edit_menu)
@@ -493,6 +520,13 @@ class AdressbuchApp(tk.Tk):
         from .group_management_dialog import GroupManagementDialog
         GroupManagementDialog(self, self.db, on_change=self._on_groups_changed)
 
+    def _open_duplicate_manager(self):
+        from .duplicate_dialog import DuplicateManagerDialog
+        DuplicateManagerDialog(
+            self, self.db,
+            on_change=lambda: self._load_contacts(self._search_var.get().strip())
+        )
+
     def _on_groups_changed(self):
         """Wird nach Änderungen in der Gruppenverwaltung aufgerufen."""
         self._refresh_group_filter()
@@ -687,6 +721,63 @@ class AdressbuchApp(tk.Tk):
             messagebox.showinfo("Export", msg)
         except Exception as e:
             messagebox.showerror("Exportfehler", str(e))
+
+    def _export_csv_current(self):
+        if not self._selected_uid:
+            messagebox.showwarning("Kein Kontakt", "Bitte zuerst einen Kontakt auswählen.")
+            return
+        contact = self.db.get(self._selected_uid)
+        if not contact:
+            return
+        self._export_csv([contact], f"{contact.get_display_name()}.csv")
+
+    def _export_csv_selected(self):
+        selection = self._listbox.curselection()
+        if not selection:
+            messagebox.showwarning(
+                "Keine Auswahl",
+                "Bitte zuerst Kontakte in der Liste markieren.\n"
+                "(Strg+Klick für mehrere, Umschalt+Klick für Bereich)"
+            )
+            return
+        contacts = [self._contacts[i] for i in selection if i < len(self._contacts)]
+        if not contacts:
+            return
+        default_name = (
+            f"{contacts[0].get_display_name()}.csv"
+            if len(contacts) == 1
+            else f"{len(contacts)}_kontakte.csv"
+        )
+        self._export_csv(contacts, default_name)
+
+    def _export_csv_all(self):
+        contacts = self.db.all()
+        if not contacts:
+            messagebox.showinfo("Export", "Keine Kontakte vorhanden.")
+            return
+        self._export_csv(contacts, "adressbuch.csv")
+
+    def _export_csv(self, contacts: list[Contact], default_name: str):
+        def on_export(field_keys: list[str], delimiter: str):
+            path = filedialog.asksaveasfilename(
+                title="CSV exportieren",
+                defaultextension=".csv",
+                initialfile=default_name,
+                filetypes=[("CSV Dateien", "*.csv"), ("Alle Dateien", "*.*")]
+            )
+            if not path:
+                return
+            exporter = CsvExporter()
+            try:
+                exported = exporter.export_contacts(contacts, path, field_keys, delimiter)
+                messagebox.showinfo(
+                    "Export",
+                    f"{exported} Kontakt(e) nach '{path}' exportiert."
+                )
+            except Exception as e:
+                messagebox.showerror("Exportfehler", str(e))
+
+        CsvExportDialog(self, len(contacts), on_export)
 
     def _copy_to_clipboard(self):
         selection = self._listbox.curselection()

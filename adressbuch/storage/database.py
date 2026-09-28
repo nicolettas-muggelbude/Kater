@@ -337,6 +337,14 @@ class Database:
         self._conn.execute("DELETE FROM groups WHERE id=?", (source_id,))
         self._conn.commit()
 
+    def reassign_contact_groups(self, old_uid: str, new_uid: str):
+        """Gruppenzugehörigkeiten von old_uid auf new_uid übertragen (für Kontakt-Merge)."""
+        self._conn.execute("""
+            INSERT OR IGNORE INTO contact_groups (contact_uid, group_id)
+            SELECT ?, group_id FROM contact_groups WHERE contact_uid = ?
+        """, (new_uid, old_uid))
+        self._conn.commit()
+
     def count_contacts_in_group(self, group_id: int) -> int:
         """Anzahl Kontakte in einer Gruppe."""
         return self._conn.execute(
